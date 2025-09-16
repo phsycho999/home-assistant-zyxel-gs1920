@@ -39,4 +39,5 @@ def set_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, pri
 
 
 async def test_snmpv3_connection(config):
-    """Test SNMPv3 connection to the sw
+    """Test SNMPv3 connection to the switch."""
+
