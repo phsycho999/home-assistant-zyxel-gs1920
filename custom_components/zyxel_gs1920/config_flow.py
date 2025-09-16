@@ -26,6 +26,7 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             connection_ok = await test_snmpv3_connection(user_input)
         except Exception as e:
+            # Zeigt die genaue Exception in HA
             return self.async_show_form(
                 step_id="user",
                 data_schema=None,
@@ -33,10 +34,11 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         if not connection_ok:
+            # Prüfe, ob Timeout oder Auth-Problem
             return self.async_show_form(
                 step_id="user",
                 data_schema=None,
-                errors={"base": "connection_failed"}
+                errors={"base": "SNMPv3 connection failed (check user, auth/priv passwords and algorithms)"}
             )
 
         return self.async_create_entry(
