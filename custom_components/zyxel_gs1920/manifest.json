@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "requirements": ["pysnmp"],
   "dependencies": [],
-  "codeowners": ["@dein-github-username"],
+  "codeowners": ["@phsycho999"],
   "config_flow": true,
-  "documentation": "https://github.com/dein-github-username/home-assistant-zyxel-gs1920"
+  "documentation": "https://github.com/phsycho999/home-assistant-zyxel-gs1920"
 }
