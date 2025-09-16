@@ -11,7 +11,6 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         if user_input is None:
-            # Formular für SNMPv3-Parameter
             schema = vol.Schema({
                 vol.Required("host"): str,
                 vol.Required("snmp_user"): str,
@@ -22,7 +21,7 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             })
             return self.async_show_form(step_id="user", data_schema=schema)
 
-        # Verbindungstest vor dem Speichern
+        # Verbindungstest
         if not await test_snmpv3_connection(user_input):
             return self.async_show_form(
                 step_id="user",
@@ -30,7 +29,6 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "connection_failed"}
             )
 
-        # Erfolgreich → Integrationseintrag erstellen
         return self.async_create_entry(
             title=user_input["host"],
             data=user_input
