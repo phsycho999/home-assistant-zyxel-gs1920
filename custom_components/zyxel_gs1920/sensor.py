@@ -1,24 +1,33 @@
 from homeassistant.components.sensor import SensorEntity
-from .snmp import get_snmp
+from .snmp import get_snmpv3
 from .const import DEFAULT_PORTS
 
 async def async_setup_entry(hass, entry, async_add_entities):
     host = entry.data["host"]
-    community = entry.data["community"]
-    sensors = []
+    snmp_user = entry.data["snmp_user"]
+    auth_protocol = entry.data["auth_protocol"]
+    auth_password = entry.data["auth_password"]
+    priv_protocol = entry.data["priv_protocol"]
+    priv_password = entry.data["priv_password"]
 
+    sensors = []
     for port in range(1, DEFAULT_PORTS + 1):
-        sensors.append(ZyxelPortStatus(host, port, community))
+        sensors.append(ZyxelPortStatus(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, port))
 
     async_add_entities(sensors)
+
 
 class ZyxelPortStatus(SensorEntity):
     """Port Status Sensor"""
 
-    def __init__(self, host, port, community):
+    def __init__(self, host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, port):
         self._host = host
+        self._snmp_user = snmp_user
+        self._auth_protocol = auth_protocol
+        self._auth_password = auth_password
+        self._priv_protocol = priv_protocol
+        self._priv_password = priv_password
         self._port = port
-        self._community = community
         self._name = f"Port {port} Status"
         self._state = None
 
@@ -31,5 +40,6 @@ class ZyxelPortStatus(SensorEntity):
         return self._state
 
     def update(self):
-        # Beispiel: SNMP-Abfrage Port Status
-        self._state = get_snmp(self._host, self._community, f"portStatusOID.{self._port}") or "down"
+        self._state = get_snmpv3(self._host, self._snmp_user, self._auth_protocol,
+                                  self._auth_password, self._priv_protocol,
+                                  self._priv_password, f"portStatusOID.{self._port}") or "down"
