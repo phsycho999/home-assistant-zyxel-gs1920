@@ -16,7 +16,6 @@ from pysnmp.hlapi import (
 
 
 def get_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, oid):
-    """SNMPv3 GET request"""
     iterator = getCmd(
         SnmpEngine(),
         UsmUserData(
@@ -37,7 +36,6 @@ def get_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, pri
 
 
 def set_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, oid, value):
-    """SNMPv3 SET request"""
     iterator = setCmd(
         SnmpEngine(),
         UsmUserData(
@@ -56,21 +54,20 @@ def set_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, pri
 
 
 async def test_snmpv3_connection(config):
-    """Test SNMPv3 connection to the switch."""
-    iterator = getCmd(
-        SnmpEngine(),
-        UsmUserData(
-            config["snmp_user"],
-            config["auth_password"],
-            config["priv_password"],
-            authProtocol=usmHMACSHAAuthProtocol if config["auth_protocol"] == "SHA" else usmHMACMD5AuthProtocol,
-            privProtocol=usmAesCfb128Protocol if config["priv_protocol"] == "AES" else usmDESPrivProtocol
-        ),
-        UdpTransportTarget((config["host"], 161)),
-        ContextData(),
-        ObjectType(ObjectIdentity('1.3.6.1.2.1.1.1.0'))  # sysDescr OID
-    )
     try:
+        iterator = getCmd(
+            SnmpEngine(),
+            UsmUserData(
+                config["snmp_user"],
+                config["auth_password"],
+                config["priv_password"],
+                authProtocol=usmHMACSHAAuthProtocol if config["auth_protocol"] == "SHA" else usmHMACMD5AuthProtocol,
+                privProtocol=usmAesCfb128Protocol if config["priv_protocol"] == "AES" else usmDESPrivProtocol
+            ),
+            UdpTransportTarget((config["host"], 161)),
+            ContextData(),
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.1.1.0'))  # sysDescr
+        )
         error_indication, error_status, error_index, var_binds = next(iterator)
         return error_indication is None and error_status is None
     except Exception:

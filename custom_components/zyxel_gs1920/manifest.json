@@ -2,7 +2,7 @@
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920 Switch Integration",
   "version": "1.2.1",
-  "requirements": ["pysnmp"],
+  "requirements": ["pysnmp==4.4.12"],
   "dependencies": [],
   "codeowners": ["@phsycho999"],
   "config_flow": true

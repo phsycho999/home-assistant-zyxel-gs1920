@@ -2,10 +2,9 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from .const import DOMAIN
-from .snmp import test_snmpv3_connection
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle config flow for Zyxel GS1920 with SNMPv3."""
+    """Handle config flow for Zyxel GS1920."""
 
     VERSION = 2
 
@@ -21,8 +20,19 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             })
             return self.async_show_form(step_id="user", data_schema=schema)
 
-        # Verbindungstest
-        if not await test_snmpv3_connection(user_input):
+        # Import innerhalb der Funktion → verhindert Blocking-Warnung
+        from .snmp import test_snmpv3_connection
+
+        try:
+            connection_ok = await test_snmpv3_connection(user_input)
+        except Exception as e:
+            return self.async_show_form(
+                step_id="user",
+                data_schema=None,
+                errors={"base": f"exception: {e}"}
+            )
+
+        if not connection_ok:
             return self.async_show_form(
                 step_id="user",
                 data_schema=None,
