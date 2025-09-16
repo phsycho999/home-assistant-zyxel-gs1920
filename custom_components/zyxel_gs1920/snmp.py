@@ -1,4 +1,19 @@
-from pysnmp.hlapi import *
+from pysnmp.hlapi import (
+    SnmpEngine,
+    UsmUserData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    getCmd,
+    setCmd,
+    Integer,
+    usmHMACSHAAuthProtocol,
+    usmHMACMD5AuthProtocol,
+    usmAesCfb128Protocol,
+    usmDESPrivProtocol,
+)
+
 
 def get_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, oid):
     """SNMPv3 GET request"""
@@ -48,12 +63,15 @@ async def test_snmpv3_connection(config):
             config["snmp_user"],
             config["auth_password"],
             config["priv_password"],
-            authProtocol=usmHMACSHAAuthProtocol if config["auth_protocol"]=="SHA" else usmHMACMD5AuthProtocol,
-            privProtocol=usmAesCfb128Protocol if config["priv_protocol"]=="AES" else usmDESPrivProtocol
+            authProtocol=usmHMACSHAAuthProtocol if config["auth_protocol"] == "SHA" else usmHMACMD5AuthProtocol,
+            privProtocol=usmAesCfb128Protocol if config["priv_protocol"] == "AES" else usmDESPrivProtocol
         ),
         UdpTransportTarget((config["host"], 161)),
         ContextData(),
-        ObjectType(ObjectIdentity('1.3.6.1.2.1.1.1.0'))  # sysDescr
+        ObjectType(ObjectIdentity('1.3.6.1.2.1.1.1.0'))  # sysDescr OID
     )
-    error_indication, error_status, error_index, var_binds = next(iterator)
-    return error_indication is None and error_status is None
+    try:
+        error_indication, error_status, error_index, var_binds = next(iterator)
+        return error_indication is None and error_status is None
+    except Exception:
+        return False
