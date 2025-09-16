@@ -1,0 +1,8 @@
+{
+  "name": "Zyxel GS1920 Switch Integration",
+  "country": "all",
+  "domains": ["zyxel_gs1920"],
+  "homeassistant": "2024.8.0",
+  "iot_class": "local_polling",
+  "render_readme": true
+}

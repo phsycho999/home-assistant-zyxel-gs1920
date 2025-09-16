@@ -1,0 +1,10 @@
+{
+  "domain": "zyxel_gs1920",
+  "name": "Zyxel GS1920 Switch Integration",
+  "version": "1.0.0",
+  "requirements": ["pysnmp"],
+  "dependencies": [],
+  "codeowners": ["@dein-github-username"],
+  "config_flow": true,
+  "documentation": "https://github.com/dein-github-username/home-assistant-zyxel-gs1920"
+}

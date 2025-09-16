@@ -1,0 +1,21 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create ZIP
+        run: |
+          mkdir -p dist
+          cd ..
+          zip -r home-assistant-zyxel-gs1920.zip home-assistant-zyxel-gs1920/custom_components home-assistant-zyxel-gs1920/hacs.json
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ../home-assistant-zyxel-gs1920.zip
