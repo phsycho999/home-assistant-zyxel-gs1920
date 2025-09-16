@@ -14,7 +14,6 @@ from pysnmp.hlapi import (
     usmDESPrivProtocol,
 )
 
-
 def get_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, oid):
     iterator = getCmd(
         SnmpEngine(),
@@ -53,7 +52,8 @@ def set_snmpv3(host, snmp_user, auth_protocol, auth_password, priv_protocol, pri
     return error_indication is None and error_status is None
 
 
-async def test_snmpv3_connection(config):
+def test_snmpv3_connection_sync(config):
+    """Synchroner Test für run_in_executor im Config Flow."""
     try:
         iterator = getCmd(
             SnmpEngine(),

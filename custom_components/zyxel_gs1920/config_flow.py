@@ -2,6 +2,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from .const import DOMAIN
+import asyncio
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle config flow for Zyxel GS1920."""
@@ -21,12 +22,15 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id="user", data_schema=schema)
 
         # Import innerhalb der Funktion → verhindert Blocking-Warnung
-        from .snmp import test_snmpv3_connection
+        from .snmp import test_snmpv3_connection_sync
 
+        loop = asyncio.get_running_loop()
         try:
-            connection_ok = await test_snmpv3_connection(user_input)
+            # SNMP-Test in Thread auslagern → blockiert Event Loop nicht
+            connection_ok = await loop.run_in_executor(
+                None, lambda: test_snmpv3_connection_sync(user_input)
+            )
         except Exception as e:
-            # Zeigt die genaue Exception in HA
             return self.async_show_form(
                 step_id="user",
                 data_schema=None,
@@ -34,7 +38,6 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         if not connection_ok:
-            # Prüfe, ob Timeout oder Auth-Problem
             return self.async_show_form(
                 step_id="user",
                 data_schema=None,
