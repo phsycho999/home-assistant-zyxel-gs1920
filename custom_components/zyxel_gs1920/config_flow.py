@@ -24,7 +24,7 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 })
             )
 
-        # Dynamischer Import, um Blocking Warning zu vermeiden
+        # dynamischer Import, um blocking warnings zu vermeiden
         from .snmp import test_snmpv3_connection
 
         ok, msg = await test_snmpv3_connection(
