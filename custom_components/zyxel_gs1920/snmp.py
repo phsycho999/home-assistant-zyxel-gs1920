@@ -1,72 +1,58 @@
-"""SNMP helper functions for Zyxel GS1920 integration."""
-
-import logging
-
-# Kompatible Importe für pysnmp 4.x und 7.x
-try:
-    from pysnmp.hlapi import (
-        SnmpEngine,
-        UsmUserData,
-        UdpTransportTarget,
-        ContextData,
-        ObjectType,
-        ObjectIdentity,
-        getCmd,
-        usmHMACSHAAuthProtocol,
-        usmAesCfb128Protocol,
-    )
-except ImportError:
-    from pysnmp.hlapi.v3arch.asyncio import (
-        SnmpEngine,
-        UsmUserData,
-        UdpTransportTarget,
-        ContextData,
-        ObjectType,
-        ObjectIdentity,
-        getCmd,
-        usmHMACSHAAuthProtocol,
-        usmAesCfb128Protocol,
-    )
-
-_LOGGER = logging.getLogger(__name__)
+import asyncio
+from pysnmp.hlapi.asyncio import (
+    SnmpEngine,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    getCmd,
+)
+from pysnmp.hlapi.auth import UsmUserData
+from pysnmp.hlapi.security import (
+    usmHMACSHAAuthProtocol,
+    usmAesCfb128Protocol,
+)
 
 
-def test_snmpv3_connection_sync(config: dict) -> bool:
-    """Testet eine SNMPv3 Verbindung synchron."""
+async def test_snmpv3_connection(host, port, user, auth_key, priv_key):
+    """
+    Testet eine SNMPv3-Verbindung asynchron.
+    Gibt True zurück, wenn die Verbindung erfolgreich ist, sonst False.
+    """
     try:
-        _LOGGER.debug("SNMPv3 Test gestartet mit Config: %s", config)
-
-        iterator = getCmd(
-            SnmpEngine(),
-            UsmUserData(
-                config["username"],
-                config.get("auth_key"),
-                config.get("priv_key"),
-                authProtocol=usmHMACSHAAuthProtocol,
-                privProtocol=usmAesCfb128Protocol,
-            ),
-            UdpTransportTarget((config["host"], int(config.get("port", 161)))),
-            ContextData(),
-            ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),  # sysDescr.0
+        engine = SnmpEngine()
+        auth = UsmUserData(
+            user,
+            auth_key,
+            priv_key,
+            authProtocol=usmHMACSHAAuthProtocol,
+            privProtocol=usmAesCfb128Protocol,
         )
 
-        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+        target = UdpTransportTarget((host, port), timeout=2.0, retries=1)
+        context = ContextData()
 
-        if errorIndication:
-            _LOGGER.error("SNMP Fehler: %s", errorIndication)
-            return False
-        elif errorStatus:
-            _LOGGER.error(
-                "SNMP Fehlerstatus bei %s: %s",
-                errorIndex,
-                errorStatus.prettyPrint(),
-            )
-            return False
+        # Beispiel: Systembeschreibung abfragen (MIB-2 sysDescr)
+        oid = ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0"))
+
+        error_indication, error_status, error_index, var_binds = await getCmd(
+            engine, auth, target, context, oid
+        )
+
+        if error_indication:
+            return False, str(error_indication)
+        elif error_status:
+            return False, f"{error_status.prettyPrint()} at {error_index}"
         else:
-            for varBind in varBinds:
-                _LOGGER.debug("SNMP Antwort: %s", " = ".join([x.prettyPrint() for x in varBind]))
-            return True
-
+            return True, f"{var_binds[0][1]}"
     except Exception as e:
-        _LOGGER.exception("SNMPv3 Verbindung fehlgeschlagen: %s", e)
-        return False
+        return False, str(e)
+
+
+def test_snmpv3_connection_sync(host, port, user, auth_key, priv_key):
+    """
+    Sync-Wrapper für Tests außerhalb von Home Assistant.
+    """
+    return asyncio.get_event_loop().run_until_complete(
+        test_snmpv3_connection(host, port, user, auth_key, priv_key)
+    )
