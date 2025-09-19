@@ -1,47 +1,49 @@
-"""Config flow for Zyxel GS1920 integration with SNMPv3 support."""
+"""Config flow for Zyxel GS1920 integration."""
 import voluptuous as vol
 from homeassistant import config_entries
 from .const import DOMAIN
-import asyncio
+from .snmp import test_snmpv3_connection_sync
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle config flow for Zyxel GS1920."""
 
-    VERSION = 2
+    VERSION = 1
 
     async def async_step_user(self, user_input=None):
         if user_input is None:
-            schema = vol.Schema({
-                vol.Required("host"): str,
-                vol.Required("snmp_user"): str,
-                vol.Required("auth_protocol", default="SHA"): vol.In(["SHA", "MD5"]),
-                vol.Required("auth_password"): str,
-                vol.Required("priv_protocol", default="AES"): vol.In(["AES", "DES"]),
-                vol.Required("priv_password"): str,
-            })
-            return self.async_show_form(step_id="user", data_schema=schema)
-
-        # Import innerhalb der Funktion → verhindert Blocking-Warnung
-        from .snmp import test_snmpv3_connection_sync
-
-        loop = asyncio.get_running_loop()
-        try:
-            # SNMP-Test in Thread auslagern → blockiert Event Loop nicht
-            connection_ok = await loop.run_in_executor(
-                None, lambda: test_snmpv3_connection_sync(user_input)
-            )
-        except Exception as e:
             return self.async_show_form(
                 step_id="user",
-                data_schema=None,
-                errors={"base": f"exception: {e}"}
+                data_schema=vol.Schema({
+                    vol.Required("host"): str,
+                    vol.Required("snmp_user"): str,
+                    vol.Required("auth_password"): str,
+                    vol.Required("priv_password"): str,
+                    vol.Optional("auth_protocol", default="SHA"): str,
+                    vol.Optional("priv_protocol", default="AES"): str,
+                })
             )
 
-        if not connection_ok:
+        # Test SNMPv3 connection
+        success = await self.hass.async_add_executor_job(
+            test_snmpv3_connection_sync, user_input
+        )
+
+        if not success:
+            _LOGGER.error("SNMPv3 connection failed for host %s", user_input["host"])
             return self.async_show_form(
                 step_id="user",
-                data_schema=None,
-                errors={"base": "SNMPv3 connection failed (check user, auth/priv passwords and algorithms)"}
+                data_schema=vol.Schema({
+                    vol.Required("host"): str,
+                    vol.Required("snmp_user"): str,
+                    vol.Required("auth_password"): str,
+                    vol.Required("priv_password"): str,
+                    vol.Optional("auth_protocol", default="SHA"): str,
+                    vol.Optional("priv_protocol", default="AES"): str,
+                }),
+                errors={"base": "cannot_connect"}
             )
 
         return self.async_create_entry(
