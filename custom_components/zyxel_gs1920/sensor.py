@@ -4,11 +4,11 @@ from .const import DEFAULT_PORTS
 
 async def async_setup_entry(hass, entry, async_add_entities):
     host = entry.data["host"]
-    snmp_user = entry.data["snmp_user"]
-    auth_protocol = entry.data["auth_protocol"]
-    auth_password = entry.data["auth_password"]
-    priv_protocol = entry.data["priv_protocol"]
-    priv_password = entry.data["priv_password"]
+    snmp_user = entry.data["username"]
+    auth_protocol = "MD5"
+    auth_password = entry.data["auth_key"]
+    priv_protocol = "DES"
+    priv_password = entry.data["priv_key"]
 
     sensors = []
     for port in range(1, DEFAULT_PORTS + 1):

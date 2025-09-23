@@ -2,6 +2,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from .const import DOMAIN
+from .snmp import test_snmpv3_connection
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle config flow for Zyxel GS1920."""
@@ -9,9 +10,6 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-        errors = {}
-
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -20,23 +18,12 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("username"): str,
                     vol.Required("auth_key"): str,
                     vol.Required("priv_key"): str,
-                    vol.Optional("port", default=161): int,
                 })
             )
 
-        # dynamischer Import, um blocking warnings zu vermeiden
-        from .snmp import test_snmpv3_connection
-
-        ok, msg = await test_snmpv3_connection(
-            user_input["host"],
-            user_input["username"],
-            user_input["auth_key"],
-            user_input["priv_key"],
-            user_input.get("port", 161),
-        )
-
-        if not ok:
-            errors["base"] = "cannot_connect"
+        # Test SNMPv3 Verbindung
+        valid = await test_snmpv3_connection(user_input)
+        if not valid:
             return self.async_show_form(
                 step_id="user",
                 data_schema=vol.Schema({
@@ -44,9 +31,8 @@ class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("username"): str,
                     vol.Required("auth_key"): str,
                     vol.Required("priv_key"): str,
-                    vol.Optional("port", default=161): int,
                 }),
-                errors=errors,
+                errors={"base": "cannot_connect"}
             )
 
         return self.async_create_entry(
