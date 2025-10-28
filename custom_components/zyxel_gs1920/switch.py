@@ -3,11 +3,9 @@ from .const import OID_IF_ADMIN_STATUS, OID_POE_POWER_UP
 from .snmp import snmp_set
 
 class ZyxelPortSwitch(SwitchEntity):
-    """Switch entity to enable/disable port."""
-
     def __init__(self, host, community, port_id):
-        self._host = host
-        self._community = community
+        self.host = host
+        self.community = community
         self.port_id = port_id
         self._is_on = False
 
@@ -16,21 +14,19 @@ class ZyxelPortSwitch(SwitchEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs):
-        await snmp_set(self._host, f"{OID_IF_ADMIN_STATUS}.{self.port_id}", 1, self._community)
+        await snmp_set(self.host, OID_IF_ADMIN_STATUS + f".{self.port_id}", 1, self.community)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await snmp_set(self._host, f"{OID_IF_ADMIN_STATUS}.{self.port_id}", 2, self._community)
+        await snmp_set(self.host, OID_IF_ADMIN_STATUS + f".{self.port_id}", 2, self.community)
         self._is_on = False
         self.async_write_ha_state()
 
 class ZyxelPoESwitch(SwitchEntity):
-    """Switch entity to enable/disable PoE on port."""
-
     def __init__(self, host, community, port_id):
-        self._host = host
-        self._community = community
+        self.host = host
+        self.community = community
         self.port_id = port_id
         self._is_on = False
 
@@ -39,12 +35,12 @@ class ZyxelPoESwitch(SwitchEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs):
-        await snmp_set(self._host, f"{OID_POE_POWER_UP}.{self.port_id}", 1, self._community)
+        await snmp_set(self.host, OID_POE_POWER_UP + f".{self.port_id}", 1, self.community)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await snmp_set(self._host, f"{OID_POE_POWER_UP}.{self.port_id}", 2, self._community)
+        await snmp_set(self.host, OID_POE_POWER_UP + f".{self.port_id}", 2, self.community)
         self._is_on = False
         self.async_write_ha_state()
 

@@ -1,33 +1,26 @@
 from pysnmp.hlapi.asyncio import *
 
-class SNMPClient:
-    def __init__(self, host, community, port=161):
-        self.host = host
-        self.community = community
-        self.port = port
+async def snmp_get(host, oid, community):
+    iterator = getCmd(
+        SnmpEngine(),
+        CommunityData(community, mpModel=0),
+        UdpTransportTarget((host, 161)),
+        ContextData(),
+        ObjectType(ObjectIdentity(oid))
+    )
+    errorIndication, errorStatus, errorIndex, varBinds = await iterator
+    if errorIndication or errorStatus:
+        return None
+    for varBind in varBinds:
+        return int(varBind[1])
 
-    async def get(self, oid):
-        iterator = getCmd(
-            SnmpEngine(),
-            CommunityData(self.community, mpModel=0),
-            UdpTransportTarget((self.host, self.port)),
-            ContextData(),
-            ObjectType(ObjectIdentity(oid))
-        )
-        errorIndication, errorStatus, errorIndex, varBinds = await iterator
-        if errorIndication or errorStatus:
-            return None
-        return int(varBinds[0][1])
-
-    async def set(self, oid, value):
-        iterator = setCmd(
-            SnmpEngine(),
-            CommunityData(self.community, mpModel=0),
-            UdpTransportTarget((self.host, self.port)),
-            ContextData(),
-            ObjectType(ObjectIdentity(oid), Integer(value))
-        )
-        errorIndication, errorStatus, errorIndex, varBinds = await iterator
-        if errorIndication or errorStatus:
-            return False
-        return True
+async def snmp_set(host, oid, value, community):
+    iterator = setCmd(
+        SnmpEngine(),
+        CommunityData(community, mpModel=0),
+        UdpTransportTarget((host, 161)),
+        ContextData(),
+        ObjectType(ObjectIdentity(oid), Integer(value))
+    )
+    errorIndication, errorStatus, errorIndex, varBinds = await iterator
+    return errorIndication is None and errorStatus == 0
