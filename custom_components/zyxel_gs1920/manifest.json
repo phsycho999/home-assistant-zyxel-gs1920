@@ -1,10 +1,13 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920 Switch",
-  "version": "1.3",
-  "requirements": ["pysnmp"],
-  "config_flow": true,
-  "documentation": "https://github.com/phsycho999/zyxel_gs1920",
+  "version": "1.0.0",
+  "documentation": "",
+  "requirements": [
+    "pysnmp"
+  ],
   "dependencies": [],
-  "codeowners": ["@phsycho999"]
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling"
 }

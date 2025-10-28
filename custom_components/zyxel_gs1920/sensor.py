@@ -1,5 +1,5 @@
 from homeassistant.components.sensor import SensorEntity
-from .snmp import snmp_get
+from .snmp import SNMPClient
 
 PORT_ADMIN_STATUS_OID = "1.3.6.1.4.1.890.1.61.2.1.1"
 POE_ADMIN_STATUS_OID = "1.3.6.1.4.1.890.1.59.2.1.1"
@@ -14,13 +14,14 @@ class ZyxelPortSensor(SensorEntity):
         self._attr_name = name
         self._oid = f"{oid}.{port_index}"
         self._attr_native_value = None
+        self.snmp = SNMPClient(host, community)
 
     @property
     def native_value(self):
         return self._attr_native_value
 
     async def async_update(self):
-        self._attr_native_value = await snmp_get(self._host, self._oid, self._community)
+        self._attr_native_value = await self.snmp.get(self._oid)
 
 async def async_setup_sensors(hass, host, community):
     sensors = []
