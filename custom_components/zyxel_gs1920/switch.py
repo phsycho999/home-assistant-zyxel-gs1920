@@ -1,9 +1,13 @@
 from homeassistant.components.switch import SwitchEntity
 from .const import OID_IF_ADMIN_STATUS, OID_POE_POWER_UP
+from .snmp import snmp_set
 
 class ZyxelPortSwitch(SwitchEntity):
-    def __init__(self, snmp_client, port_id):
-        self.snmp = snmp_client
+    """Switch entity to enable/disable port."""
+
+    def __init__(self, host, community, port_id):
+        self._host = host
+        self._community = community
         self.port_id = port_id
         self._is_on = False
 
@@ -11,24 +15,22 @@ class ZyxelPortSwitch(SwitchEntity):
     def is_on(self):
         return self._is_on
 
-    async def async_update(self):
-        value = await self.snmp.get(OID_IF_ADMIN_STATUS + f".{self.port_id}")
-        self._is_on = value == 1
-
     async def async_turn_on(self, **kwargs):
-        await self.snmp.set(OID_IF_ADMIN_STATUS + f".{self.port_id}", 1)
+        await snmp_set(self._host, f"{OID_IF_ADMIN_STATUS}.{self.port_id}", 1, self._community)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await self.snmp.set(OID_IF_ADMIN_STATUS + f".{self.port_id}", 2)
+        await snmp_set(self._host, f"{OID_IF_ADMIN_STATUS}.{self.port_id}", 2, self._community)
         self._is_on = False
         self.async_write_ha_state()
-
 
 class ZyxelPoESwitch(SwitchEntity):
-    def __init__(self, snmp_client, port_id):
-        self.snmp = snmp_client
+    """Switch entity to enable/disable PoE on port."""
+
+    def __init__(self, host, community, port_id):
+        self._host = host
+        self._community = community
         self.port_id = port_id
         self._is_on = False
 
@@ -36,16 +38,20 @@ class ZyxelPoESwitch(SwitchEntity):
     def is_on(self):
         return self._is_on
 
-    async def async_update(self):
-        value = await self.snmp.get(OID_POE_POWER_UP + f".{self.port_id}")
-        self._is_on = value == 1
-
     async def async_turn_on(self, **kwargs):
-        await self.snmp.set(OID_POE_POWER_UP + f".{self.port_id}", 1)
+        await snmp_set(self._host, f"{OID_POE_POWER_UP}.{self.port_id}", 1, self._community)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await self.snmp.set(OID_POE_POWER_UP + f".{self.port_id}", 2)
+        await snmp_set(self._host, f"{OID_POE_POWER_UP}.{self.port_id}", 2, self._community)
         self._is_on = False
         self.async_write_ha_state()
+
+async def async_setup_switches(hass, host, community):
+    switches = []
+    for i in range(1, 25):
+        switches.append(ZyxelPortSwitch(host, community, i))
+        switches.append(ZyxelPoESwitch(host, community, i))
+
+    hass.async_create_task(hass.helpers.entity_platform.async_add_entities(switches))
