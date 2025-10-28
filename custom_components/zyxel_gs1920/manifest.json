@@ -1,8 +1,11 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920",
-  "version": "1.3.1",
+  "version": "1.0.0",
+  "documentation": "https://github.com/phsycho999/zyxel_gs1920",
   "requirements": ["pysnmp"],
   "dependencies": [],
-  "config_flow": true
+  "codeowners": ["@phsycho999"],
+  "config_flow": true,
+  "integration_type": "hub"
 }

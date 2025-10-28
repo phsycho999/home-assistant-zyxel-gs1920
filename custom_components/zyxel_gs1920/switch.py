@@ -2,9 +2,9 @@ from homeassistant.components.switch import SwitchEntity
 from .const import OID_IF_ADMIN_STATUS, OID_POE_POWER_UP
 
 class ZyxelPortSwitch(SwitchEntity):
-    def __init__(self, snmp_client, port_index):
+    def __init__(self, snmp_client, port):
         self.snmp = snmp_client
-        self.port_index = port_index
+        self.port = port
         self._is_on = False
 
     @property
@@ -12,19 +12,19 @@ class ZyxelPortSwitch(SwitchEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs):
-        await self.snmp.set(f"{OID_IF_ADMIN_STATUS}.{self.port_index}", 1)
+        self.snmp.set(f"{OID_IF_ADMIN_STATUS}.{self.port}", 1)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await self.snmp.set(f"{OID_IF_ADMIN_STATUS}.{self.port_index}", 2)
+        self.snmp.set(f"{OID_IF_ADMIN_STATUS}.{self.port}", 2)
         self._is_on = False
         self.async_write_ha_state()
 
 class ZyxelPoESwitch(SwitchEntity):
-    def __init__(self, snmp_client, port_index):
+    def __init__(self, snmp_client, port):
         self.snmp = snmp_client
-        self.port_index = port_index
+        self.port = port
         self._is_on = False
 
     @property
@@ -32,11 +32,11 @@ class ZyxelPoESwitch(SwitchEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs):
-        await self.snmp.set(f"{OID_POE_POWER_UP}.{self.port_index}", 1)
+        self.snmp.set(f"{OID_POE_POWER_UP}.{self.port}", 1)
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await self.snmp.set(f"{OID_POE_POWER_UP}.{self.port_index}", 2)
+        self.snmp.set(f"{OID_POE_POWER_UP}.{self.port}", 2)
         self._is_on = False
         self.async_write_ha_state()

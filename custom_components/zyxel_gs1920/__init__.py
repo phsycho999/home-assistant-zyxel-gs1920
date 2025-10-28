@@ -1,31 +1,45 @@
-from .snmp import SNMPClient
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from .const import DOMAIN
 from .sensor import async_setup_sensors
 from .switch import ZyxelPortSwitch, ZyxelPoESwitch
-from .const import DEFAULT_PORTS
-from homeassistant.helpers.entity_platform import async_add_entities
+from .snmp import SNMPClient
 
-async def async_setup_entry(hass, entry):
+PLATFORMS = ["sensor", "switch"]
+
+async def async_setup(hass: HomeAssistant, config: dict):
+    """Set up the integration (deprecated, config_flow used)."""
+    return True
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Set up Zyxel GS1920 from a config entry."""
     host = entry.data["host"]
-    version = entry.data.get("snmp_version", "2c")
-    community = entry.data.get("community", "public")
-    user = entry.data.get("username")
-    auth_protocol = entry.data.get("auth_protocol")
-    auth_key = entry.data.get("auth_key")
-    priv_protocol = entry.data.get("priv_protocol")
-    priv_key = entry.data.get("priv_key")
+    snmp_version = entry.data.get("snmp_version", "2c")
 
-    snmp = SNMPClient(host, version=version, community=community,
-                      user=user, auth_protocol=auth_protocol, auth_key=auth_key,
-                      priv_protocol=priv_protocol, priv_key=priv_key)
+    if snmp_version == "2c":
+        community = entry.data.get("community", "public")
+        snmp_client = SNMPClient(host, community)
+    else:
+        snmp_client = SNMPClient(
+            host,
+            user=entry.data.get("username"),
+            auth_protocol=entry.data.get("auth_protocol"),
+            auth_key=entry.data.get("auth_key"),
+            priv_protocol=entry.data.get("priv_protocol"),
+            priv_key=entry.data.get("priv_key")
+        )
 
-    # Sensoren
-    await async_setup_sensors(hass, snmp, ports=DEFAULT_PORTS)
+    # Setup sensors
+    await async_setup_sensors(hass, snmp_client)
 
-    # Switches
+    # Setup switches
     switches = []
-    for i in range(1, DEFAULT_PORTS + 1):
-        switches.append(ZyxelPortSwitch(snmp, i))
-        switches.append(ZyxelPoESwitch(snmp, i))
-    hass.async_create_task(async_add_entities(switches))
+    for port in range(1, 25):
+        switches.append(ZyxelPortSwitch(snmp_client, port))
+        switches.append(ZyxelPoESwitch(snmp_client, port))
+
+    hass.async_create_task(
+        hass.helpers.entity_platform.async_add_entities(switches)
+    )
 
     return True
