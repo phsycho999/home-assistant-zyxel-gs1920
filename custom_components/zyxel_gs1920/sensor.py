@@ -1,35 +1,28 @@
-from homeassistant.components.sensor import SensorEntity
-from .snmp import get_snmpv3
-from .const import DEFAULT_PORTS
+from homeassistant.helpers.entity import Entity
+from .const import DOMAIN, DEFAULT_PORTS
+from .snmp import get_ports, get_poe_status
 
 async def async_setup_entry(hass, entry, async_add_entities):
     host = entry.data["host"]
-    snmp_user = entry.data["username"]
-    auth_protocol = "MD5"
-    auth_password = entry.data["auth_key"]
-    priv_protocol = "DES"
-    priv_password = entry.data["priv_key"]
+    username = entry.data["username"]
+    auth_key = entry.data.get("auth_key", "")
+    priv_key = entry.data.get("priv_key", "")
 
-    sensors = []
-    for port in range(1, DEFAULT_PORTS + 1):
-        sensors.append(ZyxelPortStatus(host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, port))
+    ports = await get_ports(host, username, auth_key, priv_key)
+    poe = await get_poe_status(host, username, auth_key, priv_key)
 
-    async_add_entities(sensors)
+    entities = []
+    for port, status in ports.items():
+        entities.append(ZyxelPortSensor(entry.entry_id, port, status, poe.get(port, False)))
+    async_add_entities(entities)
 
-
-class ZyxelPortStatus(SensorEntity):
-    """Port Status Sensor"""
-
-    def __init__(self, host, snmp_user, auth_protocol, auth_password, priv_protocol, priv_password, port):
-        self._host = host
-        self._snmp_user = snmp_user
-        self._auth_protocol = auth_protocol
-        self._auth_password = auth_password
-        self._priv_protocol = priv_protocol
-        self._priv_password = priv_password
+class ZyxelPortSensor(Entity):
+    def __init__(self, entry_id, port, status, poe_status):
+        self._entry_id = entry_id
         self._port = port
-        self._name = f"Port {port} Status"
-        self._state = None
+        self._status = status
+        self._poe = poe_status
+        self._name = f"Port {port}"
 
     @property
     def name(self):
@@ -37,9 +30,8 @@ class ZyxelPortStatus(SensorEntity):
 
     @property
     def state(self):
-        return self._state
+        return "on" if self._status else "off"
 
-    def update(self):
-        self._state = get_snmpv3(self._host, self._snmp_user, self._auth_protocol,
-                                  self._auth_password, self._priv_protocol,
-                                  self._priv_password, f"portStatusOID.{self._port}") or "down"
+    @property
+    def extra_state_attributes(self):
+        return {"poe": self._poe}
