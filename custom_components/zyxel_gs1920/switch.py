@@ -1,6 +1,5 @@
 from homeassistant.components.switch import SwitchEntity
 from .const import DEFAULT_PORTS, OID_IF_ADMIN_STATUS, OID_POE_POWER_UP
-from homeassistant.helpers import entity_platform
 
 class ZyxelPortSwitch(SwitchEntity):
     def __init__(self, snmp_client, port_index):
@@ -44,9 +43,9 @@ class ZyxelPoESwitch(SwitchEntity):
 
 async def async_setup_switches(hass, snmp_client):
     switches = []
-    for i in range(1, DEFAULT_PORTS + 1):
+    for i in range(1, DEFAULT_PORTS+1):
         switches.append(ZyxelPortSwitch(snmp_client, i))
         switches.append(ZyxelPoESwitch(snmp_client, i))
 
-    platform = entity_platform.async_get_current_platform()
-    platform.async_add_entities(switches)
+    for switch in switches:
+        hass.async_create_task(hass.helpers.entity_platform.async_add_entities([switch]))

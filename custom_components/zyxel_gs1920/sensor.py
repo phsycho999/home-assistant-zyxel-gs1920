@@ -1,5 +1,4 @@
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers import entity_platform
 from .const import DEFAULT_PORTS, OID_IF_OPER_STATUS, OID_POE_STATUS, OID_POE_CONSUMPTION, OID_POE_CLASSIFICATION
 
 class ZyxelPortSensor(Entity):
@@ -19,11 +18,11 @@ class ZyxelPortSensor(Entity):
 
 async def async_setup_sensors(hass, snmp_client):
     sensors = []
-    for i in range(1, DEFAULT_PORTS + 1):
+    for i in range(1, DEFAULT_PORTS+1):
         sensors.append(ZyxelPortSensor(snmp_client, i, f"Port {i} Status", OID_IF_OPER_STATUS))
         sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE {i} Status", OID_POE_STATUS))
         sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE {i} Consumption", OID_POE_CONSUMPTION))
         sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE {i} Class", OID_POE_CLASSIFICATION))
 
-    platform = entity_platform.async_get_current_platform()
-    platform.async_add_entities(sensors)
+    for sensor in sensors:
+        hass.async_create_task(hass.helpers.entity_platform.async_add_entities([sensor]))

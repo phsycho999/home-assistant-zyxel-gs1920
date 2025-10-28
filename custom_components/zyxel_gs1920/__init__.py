@@ -1,20 +1,27 @@
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from .const import DOMAIN
 from .snmp import SNMPClient
 from .sensor import async_setup_sensors
 from .switch import async_setup_switches
-from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, CONF_SNMP_VERSION, CONF_USER, CONF_AUTH_KEY, CONF_PRIV_KEY
 
-async def async_setup_entry(hass: HomeAssistant, entry):
-    host = entry.data[CONF_HOST]
-    snmp_version = entry.data.get(CONF_SNMP_VERSION, "2c")
-    community = entry.data.get(CONF_COMMUNITY, "public")
-    user = entry.data.get(CONF_USER)
-    auth_key = entry.data.get(CONF_AUTH_KEY)
-    priv_key = entry.data.get(CONF_PRIV_KEY)
+async def async_setup(hass: HomeAssistant, config: dict):
+    """Setup the integration (not used with config flow)."""
+    return True
 
-    snmp_client = SNMPClient(host, snmp_version, community, user, auth_key, priv_key)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Set up Zyxel GS1920 from a config entry."""
+    data = entry.data
+    snmp_client = SNMPClient(
+        host=data.get("host"),
+        community=data.get("community"),
+        snmp_version=data.get("snmp_version"),
+        user=data.get("user"),
+        auth_key=data.get("auth_key"),
+        priv_key=data.get("priv_key")
+    )
 
+    # Sensoren und Switches setzen
     await async_setup_sensors(hass, snmp_client)
     await async_setup_switches(hass, snmp_client)
-
     return True
