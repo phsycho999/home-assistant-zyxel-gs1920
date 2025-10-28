@@ -1,63 +1,45 @@
-from homeassistant.helpers.entity import SwitchEntity
-from .snmp import snmp_get, snmp_set
+from homeassistant.components.switch import SwitchEntity
 
 class ZyxelPortSwitch(SwitchEntity):
-    """Ein-/Ausschalten eines Ports."""
+    """Represents a physical port switch."""
 
-    def __init__(self, host, community, port_number, oid):
-        self._host = host
-        self._community = community
-        self._port = port_number
-        self._oid = oid
-        self._state = None
-
-    @property
-    def name(self):
-        return f"Port {self._port}"
+    def __init__(self, port_data):
+        self._port_data = port_data
+        self._attr_name = f"Zyxel Port {port_data['port']}"
+        self._attr_is_on = port_data['enabled']
 
     @property
     def is_on(self):
-        return self._state == 1
+        return self._attr_is_on
 
     async def async_turn_on(self, **kwargs):
-        await snmp_set(self._host, self._community, self._oid, 1)
-        self._state = 1
+        # TODO: SNMP Befehl für Port ON
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await snmp_set(self._host, self._community, self._oid, 2)
-        self._state = 2
-
-    async def async_update(self):
-        value = await snmp_get(self._host, self._community, self._oid)
-        self._state = int(value)
-
+        # TODO: SNMP Befehl für Port OFF
+        self._attr_is_on = False
+        self.async_write_ha_state()
 
 class ZyxelPoESwitch(SwitchEntity):
-    """Ein-/Ausschalten der PoE-Funktion eines Ports."""
+    """Represents a PoE switchable port."""
 
-    def __init__(self, host, community, port_number, oid):
-        self._host = host
-        self._community = community
-        self._port = port_number
-        self._oid = oid
-        self._state = None
-
-    @property
-    def name(self):
-        return f"PoE Port {self._port}"
+    def __init__(self, port_data):
+        self._port_data = port_data
+        self._attr_name = f"Zyxel PoE Port {port_data['port']}"
+        self._attr_is_on = port_data['enabled']
 
     @property
     def is_on(self):
-        return self._state == 1
+        return self._attr_is_on
 
     async def async_turn_on(self, **kwargs):
-        await snmp_set(self._host, self._community, self._oid, 1)
-        self._state = 1
+        # TODO: SNMP Befehl PoE ON
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await snmp_set(self._host, self._community, self._oid, 2)
-        self._state = 2
-
-    async def async_update(self):
-        value = await snmp_get(self._host, self._community, self._oid)
-        self._state = int(value)
+        # TODO: SNMP Befehl PoE OFF
+        self._attr_is_on = False
+        self.async_write_ha_state()

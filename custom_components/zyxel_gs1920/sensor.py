@@ -1,25 +1,17 @@
-from homeassistant.helpers.entity import SensorEntity
-from .snmp import snmp_get
+from homeassistant.components.sensor import SensorEntity
 
 class ZyxelPoEPowerSensor(SensorEntity):
-    """PoE-Verbrauch pro Port als Sensor."""
+    """Represents PoE power consumption sensor."""
 
-    def __init__(self, host, community, port_number, oid, name):
-        self._host = host
-        self._community = community
-        self._port = port_number
-        self._oid = oid
-        self._state = None
-        self._name = name
+    def __init__(self, port_data):
+        self._port_data = port_data
+        self._attr_name = f"Zyxel PoE Power Port {port_data['port']}"
+        self._attr_native_value = port_data['power_consumption']
 
     @property
-    def name(self):
-        return f"{self._name} {self._port}"
-
-    @property
-    def state(self):
-        return self._state
+    def native_unit_of_measurement(self):
+        return "mW"
 
     async def async_update(self):
-        value = await snmp_get(self._host, self._community, self._oid)
-        self._state = int(value)
+        # TODO: SNMP Abfrage PoE Power
+        self._attr_native_value = self._port_data.get("power_consumption", 0)

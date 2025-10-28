@@ -1,9 +1,9 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920",
-  "version": "1.2",
-  "requirements": ["pysnmp"],
+  "version": "1.3.0",
+  "requirements": ["pysnmp>=4.5.0"],
   "dependencies": [],
-  "codeowners": ["@deinname"],
-  "config_flow": true
+  "codeowners": ["@deinusername"],
+  "config_entries": ["zyxel_gs1920"]
 }
