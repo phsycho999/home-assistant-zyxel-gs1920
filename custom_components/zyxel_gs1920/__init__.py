@@ -1,46 +1,20 @@
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN
 from .snmp import SNMPClient
+from .sensor import async_setup_sensors
+from .switch import async_setup_switches
+from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, CONF_SNMP_VERSION, CONF_USER, CONF_AUTH_KEY, CONF_PRIV_KEY
 
-PLATFORMS = ["sensor", "switch"]
+async def async_setup_entry(hass: HomeAssistant, entry):
+    host = entry.data[CONF_HOST]
+    snmp_version = entry.data.get(CONF_SNMP_VERSION, "2c")
+    community = entry.data.get(CONF_COMMUNITY, "public")
+    user = entry.data.get(CONF_USER)
+    auth_key = entry.data.get(CONF_AUTH_KEY)
+    priv_key = entry.data.get(CONF_PRIV_KEY)
 
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Standard setup, leer da Config Flow verwendet wird."""
-    return True
+    snmp_client = SNMPClient(host, snmp_version, community, user, auth_key, priv_key)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Setup aus Config Flow."""
-    host = entry.data["host"]
-    snmp_version = entry.data.get("snmp_version", "2c")
+    await async_setup_sensors(hass, snmp_client)
+    await async_setup_switches(hass, snmp_client)
 
-    if snmp_version == "2c":
-        community = entry.data.get("community", "public")
-        snmp_client = SNMPClient(host, community)
-    else:
-        snmp_client = SNMPClient(
-            host,
-            user=entry.data.get("username"),
-            auth_protocol=entry.data.get("auth_protocol"),
-            auth_key=entry.data.get("auth_key"),
-            priv_protocol=entry.data.get("priv_protocol"),
-            priv_key=entry.data.get("priv_key")
-        )
-
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = snmp_client
-
-    # Plattformen laden
-    for platform in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, platform)
-        )
-
-    return True
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Unloading a config entry."""
-    for platform in PLATFORMS:
-        await hass.config_entries.async_forward_entry_unload(entry, platform)
-
-    hass.data[DOMAIN].pop(entry.entry_id)
     return True

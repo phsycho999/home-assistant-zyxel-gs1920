@@ -1,9 +1,8 @@
 from homeassistant.components.switch import SwitchEntity
 from .const import DEFAULT_PORTS, OID_IF_ADMIN_STATUS, OID_POE_POWER_UP
+from homeassistant.helpers import entity_platform
 
 class ZyxelPortSwitch(SwitchEntity):
-    """Switch für Port ein/aus."""
-
     def __init__(self, snmp_client, port_index):
         self.snmp = snmp_client
         self.port_index = port_index
@@ -23,10 +22,7 @@ class ZyxelPortSwitch(SwitchEntity):
         self._is_on = False
         self.async_write_ha_state()
 
-
 class ZyxelPoESwitch(SwitchEntity):
-    """Switch für PoE ein/aus."""
-
     def __init__(self, snmp_client, port_index):
         self.snmp = snmp_client
         self.port_index = port_index
@@ -46,12 +42,11 @@ class ZyxelPoESwitch(SwitchEntity):
         self._is_on = False
         self.async_write_ha_state()
 
-
 async def async_setup_switches(hass, snmp_client):
     switches = []
     for i in range(1, DEFAULT_PORTS + 1):
         switches.append(ZyxelPortSwitch(snmp_client, i))
         switches.append(ZyxelPoESwitch(snmp_client, i))
 
-    platform = hass.data["zyxel_gs1920"]["platform"]
+    platform = entity_platform.async_get_current_platform()
     platform.async_add_entities(switches)
