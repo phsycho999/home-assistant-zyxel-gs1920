@@ -41,9 +41,9 @@ class ZyxelPoESwitch(SwitchEntity):
         self._is_on = False
         self.async_write_ha_state()
 
-async def async_setup_switches(hass, snmp_client, async_add_entities):
+async def async_setup_switches(hass, snmp_client, add_entities):
     switches = []
-    for i in range(1, DEFAULT_PORTS+1):
+    for i in range(1, DEFAULT_PORTS + 1):
         switches.append(ZyxelPortSwitch(snmp_client, i))
         switches.append(ZyxelPoESwitch(snmp_client, i))
-    async_add_entities(switches)
+    add_entities(switches)

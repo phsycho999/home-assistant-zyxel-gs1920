@@ -1,11 +1,8 @@
 from homeassistant import config_entries
-from homeassistant.core import callback
-import voluptuous as vol
 from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, CONF_SNMP_VERSION, CONF_USER, CONF_AUTH_KEY, CONF_PRIV_KEY
+import voluptuous as vol
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
-
     VERSION = 1
 
     async def async_step_user(self, user_input=None):

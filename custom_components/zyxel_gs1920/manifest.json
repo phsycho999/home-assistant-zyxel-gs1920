@@ -1,15 +1,9 @@
 {
   "domain": "zyxel_gs1920",
-  "name": "Zyxel GS1920",
+  "name": "Zyxel GS1920 Switch",
   "version": "1.0.0",
-  "documentation": "https://www.home-assistant.io/integrations/zyxel_gs1920",
-  "requirements": [
-    "pysnmp"
-  ],
+  "requirements": ["pysnmp>=4.5.3"],
   "dependencies": [],
-  "codeowners": ["@deinGitHubName"],
-  "config_flow": true,
-  "integration_type": "hub",
-  "iot_class": "local_polling",
-  "homeassistant": "2025.10.4"
+  "codeowners": [],
+  "config_flow": true
 }
