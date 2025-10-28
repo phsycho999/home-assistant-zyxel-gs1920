@@ -1,18 +1,16 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from .const import DOMAIN
-from .sensor import async_setup_sensors
-from .switch import ZyxelPortSwitch, ZyxelPoESwitch
 from .snmp import SNMPClient
 
 PLATFORMS = ["sensor", "switch"]
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the integration (deprecated, config_flow used)."""
+    """Standard setup, leer da Config Flow verwendet wird."""
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Zyxel GS1920 from a config entry."""
+    """Setup aus Config Flow."""
     host = entry.data["host"]
     snmp_version = entry.data.get("snmp_version", "2c")
 
@@ -29,17 +27,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             priv_key=entry.data.get("priv_key")
         )
 
-    # Setup sensors
-    await async_setup_sensors(hass, snmp_client)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = snmp_client
 
-    # Setup switches
-    switches = []
-    for port in range(1, 25):
-        switches.append(ZyxelPortSwitch(snmp_client, port))
-        switches.append(ZyxelPoESwitch(snmp_client, port))
+    # Plattformen laden
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
 
-    hass.async_create_task(
-        hass.helpers.entity_platform.async_add_entities(switches)
-    )
+    return True
 
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Unloading a config entry."""
+    for platform in PLATFORMS:
+        await hass.config_entries.async_forward_entry_unload(entry, platform)
+
+    hass.data[DOMAIN].pop(entry.entry_id)
     return True

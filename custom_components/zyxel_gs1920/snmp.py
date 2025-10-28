@@ -11,43 +11,56 @@ class SNMPClient:
         self.priv_key = priv_key
 
     async def get(self, oid):
-        """Get SNMP value (supports v2c & v3)."""
         if self.community:
+            # SNMPv2c
             iterator = getCmd(
                 SnmpEngine(),
-                CommunityData(self.community, mpModel=1),
+                CommunityData(self.community),
                 UdpTransportTarget((self.host, 161)),
                 ContextData(),
                 ObjectType(ObjectIdentity(oid))
             )
         else:
-            # v3
-            from pysnmp.hlapi import UsmUserData, UsmAuthProtocol, UsmPrivProtocol
-            auth_proto = getattr(UsmAuthProtocol, self.auth_protocol, UsmAuthProtocol.NOAUTH)
-            priv_proto = getattr(UsmPrivProtocol, self.priv_protocol, UsmPrivProtocol.NOPRIV)
-
+            # SNMPv3
             iterator = getCmd(
                 SnmpEngine(),
-                UsmUserData(self.user, self.auth_key, self.priv_key, authProtocol=auth_proto, privProtocol=priv_proto),
+                UsmUserData(self.user, self.auth_key, self.priv_key,
+                            authProtocol=self.auth_protocol,
+                            privProtocol=self.priv_protocol),
                 UdpTransportTarget((self.host, 161)),
                 ContextData(),
                 ObjectType(ObjectIdentity(oid))
             )
 
         errorIndication, errorStatus, errorIndex, varBinds = await iterator
-        if errorIndication or errorStatus:
+        if errorIndication:
             return None
-        return varBinds[0][1]
+        elif errorStatus:
+            return None
+        else:
+            for varBind in varBinds:
+                return varBind[1]
 
-    def set(self, oid, value):
-        """Set SNMP value (simplified for v2c)."""
-        from pysnmp.hlapi import setCmd, CommunityData, SnmpEngine, UdpTransportTarget, ContextData, ObjectType, Integer, ObjectIdentity
-        iterator = setCmd(
-            SnmpEngine(),
-            CommunityData(self.community, mpModel=1),
-            UdpTransportTarget((self.host, 161)),
-            ContextData(),
-            ObjectType(ObjectIdentity(oid), Integer(value))
-        )
-        # return immediately (async handling optional)
-        return iterator
+    async def set(self, oid, value):
+        # Nur SNMPv2c/3 set Unterstützung
+        if self.community:
+            iterator = setCmd(
+                SnmpEngine(),
+                CommunityData(self.community),
+                UdpTransportTarget((self.host, 161)),
+                ContextData(),
+                ObjectType(ObjectIdentity(oid), Integer(value))
+            )
+        else:
+            iterator = setCmd(
+                SnmpEngine(),
+                UsmUserData(self.user, self.auth_key, self.priv_key,
+                            authProtocol=self.auth_protocol,
+                            privProtocol=self.priv_protocol),
+                UdpTransportTarget((self.host, 161)),
+                ContextData(),
+                ObjectType(ObjectIdentity(oid), Integer(value))
+            )
+
+        errorIndication, errorStatus, errorIndex, varBinds = await iterator
+        return errorIndication is None and errorStatus is None

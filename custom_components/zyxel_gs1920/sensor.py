@@ -1,12 +1,15 @@
 from homeassistant.components.sensor import SensorEntity
-from .const import OID_IF_OPER_STATUS, OID_POE_STATUS, OID_POE_CONSUMPTION, OID_POE_CLASSIFICATION
+from .snmp import snmp_get
+from .const import DEFAULT_PORTS, PORT_ADMIN_STATUS_OID, POE_ADMIN_STATUS_OID, POE_CONSUMPTION_OID, POE_CLASSIFICATION_OID
 
 class ZyxelPortSensor(SensorEntity):
-    def __init__(self, snmp_client, port, name, oid):
+    """Sensor für einen einzelnen Switch-Port."""
+
+    def __init__(self, snmp_client, port_index, name, oid):
         self.snmp = snmp_client
-        self.port = port
+        self.port_index = port_index
         self._attr_name = name
-        self.oid = f"{oid}.{port}"
+        self._oid = f"{oid}.{port_index}"
         self._attr_native_value = None
 
     @property
@@ -14,16 +17,16 @@ class ZyxelPortSensor(SensorEntity):
         return self._attr_native_value
 
     async def async_update(self):
-        self._attr_native_value = await self.snmp.get(self.oid)
+        self._attr_native_value = await self.snmp.get(self._oid)
 
 async def async_setup_sensors(hass, snmp_client):
     sensors = []
-    for port in range(1, 25):
-        sensors.append(ZyxelPortSensor(snmp_client, port, f"Port {port} Status", OID_IF_OPER_STATUS))
-        sensors.append(ZyxelPortSensor(snmp_client, port, f"PoE {port} Status", OID_POE_STATUS))
-        sensors.append(ZyxelPortSensor(snmp_client, port, f"PoE {port} Consumption", OID_POE_CONSUMPTION))
-        sensors.append(ZyxelPortSensor(snmp_client, port, f"PoE {port} Class", OID_POE_CLASSIFICATION))
 
-    hass.async_create_task(
-        hass.helpers.entity_platform.async_add_entities(sensors)
-    )
+    for i in range(1, DEFAULT_PORTS + 1):
+        sensors.append(ZyxelPortSensor(snmp_client, i, f"Port {i} Admin Status", PORT_ADMIN_STATUS_OID))
+        sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE Port {i} Status", POE_ADMIN_STATUS_OID))
+        sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE Port {i} Consumption", POE_CONSUMPTION_OID))
+        sensors.append(ZyxelPortSensor(snmp_client, i, f"PoE Port {i} Class", POE_CLASSIFICATION_OID))
+
+    platform = hass.data["zyxel_gs1920"]["platform"]
+    platform.async_add_entities(sensors)
