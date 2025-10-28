@@ -1,4 +1,4 @@
-from homeassistant.helpers.entity import Entity
+from homeassistant.components.sensor import SensorEntity
 from .const import DOMAIN, DEFAULT_PORTS
 from .snmp import get_ports, get_poe_status
 
@@ -16,17 +16,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entities.append(ZyxelPortSensor(entry.entry_id, port, status, poe.get(port, False)))
     async_add_entities(entities)
 
-class ZyxelPortSensor(Entity):
+class ZyxelPortSensor(SensorEntity):
     def __init__(self, entry_id, port, status, poe_status):
         self._entry_id = entry_id
         self._port = port
         self._status = status
         self._poe = poe_status
         self._name = f"Port {port}"
+        self._unique_id = f"{entry_id}_port_{port}"
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def unique_id(self):
+        return self._unique_id
 
     @property
     def state(self):

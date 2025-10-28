@@ -1,6 +1,5 @@
-"""Zyxel GS1920 integration."""
-
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -8,7 +7,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data

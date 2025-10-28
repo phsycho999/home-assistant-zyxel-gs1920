@@ -4,10 +4,9 @@
   "version": "1.0.0",
   "documentation": "https://github.com/deinuser/home-assistant-zyxel-gs1920",
   "requirements": [
-    "pysnmp>=7.0.0",
+    "pysnmp>=5.0.22",
     "pyasn1>=0.5.0"
   ],
   "dependencies": [],
-  "codeowners": ["@deinuser"],
-  "config_flow": true
+  "codeowners": ["@deinuser"]
 }
