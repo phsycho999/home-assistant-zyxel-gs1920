@@ -1,27 +1,43 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from .const import DOMAIN
 from .snmp import SNMPClient
-from .sensor import async_setup_sensors
-from .switch import async_setup_switches
-from .const import DOMAIN, CONF_HOST, CONF_COMMUNITY, CONF_SNMP_VERSION, CONF_USER, CONF_AUTH_KEY, CONF_PRIV_KEY
 
-async def async_setup(hass: HomeAssistant, config: dict):
+PLATFORMS = ["sensor", "switch"]
+
+async def async_setup(hass: HomeAssistant, config) -> bool:
+    """Empty setup, using config entries only."""
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    host = entry.options.get(CONF_HOST)
-    version = entry.options.get(CONF_SNMP_VERSION, "2c")
-    community = entry.options.get(CONF_COMMUNITY, "public")
-    user = entry.options.get(CONF_USER)
-    auth_key = entry.options.get(CONF_AUTH_KEY)
-    priv_key = entry.options.get(CONF_PRIV_KEY)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up the Zyxel GS1920 integration from a config entry."""
 
+    # SNMP client erzeugen (wie bisher)
     snmp_client = SNMPClient(
-        host=host, version=version, community=community,
-        user=user, auth_key=auth_key, priv_key=priv_key
+        host=entry.data.get("host"),
+        port=entry.data.get("snmp_port", 161),
+        version=entry.data.get("snmp_version", "2c"),
+        community=entry.data.get("community", "public"),
+        user=entry.data.get("user"),
+        auth_key=entry.data.get("auth_key"),
+        priv_key=entry.data.get("priv_key"),
     )
 
-    hass.async_create_task(async_setup_sensors(hass, snmp_client, hass.helpers.entity_platform.async_add_entities))
-    hass.async_create_task(async_setup_switches(hass, snmp_client, hass.helpers.entity_platform.async_add_entities))
+    # SNMP client in hass.data zentral speichern
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = snmp_client
+
+    # Sensoren und Switches über die Plattformen einrichten
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
 
     return True
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry and its platforms."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+    return unload_ok
