@@ -8,7 +8,6 @@ from .const import (
 )
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Zyxel GS1920 switches."""
     snmp = hass.data[DOMAIN][entry.entry_id]
 
     switches = []

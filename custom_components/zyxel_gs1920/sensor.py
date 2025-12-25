@@ -7,11 +7,9 @@ from .const import (
     OID_POE_STATUS,
     OID_POE_CONSUMPTION,
     OID_POE_CLASSIFICATION,
-    OID_SYS_NAME,
 )
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Zyxel GS1920 sensors."""
     snmp = hass.data[DOMAIN][entry.entry_id]
 
     sensors = []
@@ -35,7 +33,6 @@ class ZyxelPortSensor(SensorEntity):
         self._attr_name = f"{name} {port}"
         self._attr_unique_id = f"{entry_id}_{name.replace(' ', '_').lower()}_{port}"
         self._state = None
-        self._device_name = None
 
     @property
     def state(self):
