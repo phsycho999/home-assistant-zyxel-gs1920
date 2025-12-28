@@ -1,50 +1,60 @@
-import asyncio
-from pysnmp.hlapi import (
-    SnmpEngine, CommunityData, UsmUserData, UdpTransportTarget, ContextData,
-    getCmd, setCmd, ObjectType, ObjectIdentity
-)
+from pysnmp.hlapi.asyncio import *
+from pysnmp.hlapi import usmHMACMD5AuthProtocol, usmAesCfb128Protocol, ObjectType, ObjectIdentity, SnmpEngine, ContextData, UdpTransportTarget, Integer
 
-class SNMPClient:
-    def __init__(self, host, port=161, version="2c", community="public",
-                 user=None, auth_key=None, priv_key=None):
-        self.host = host
-        self.port = port
-        self.version = version
-        self.community = community
-        self.user = user
-        self.auth_key = auth_key
-        self.priv_key = priv_key
+async def get_ports(host, user_data):
+    """Liste aller Ports zurückgeben."""
+    transport = UdpTransportTarget.create((host, 161))
+    ports = []
 
-    def _get_auth(self):
-        if self.version.lower() == "3":
-            return UsmUserData(self.user, self.auth_key, self.priv_key)
-        return CommunityData(self.community)
+    # Zyxel MIB: zyxelPortTable (OID für die Port-Namen)
+    oid = ObjectIdentity('1.3.6.1.4.1.890.1.59.1.1.1.3')  # zyPortName
+    errorIndication, errorStatus, errorIndex, varBinds = await nextCmd(
+        SnmpEngine(),
+        user_data,
+        transport,
+        ContextData(),
+        ObjectType(oid),
+        lexicographicMode=False
+    )
 
-    async def get(self, oid):
-        def sync_get():
-            iterator = getCmd(
-                SnmpEngine(),
-                self._get_auth(),
-                UdpTransportTarget((self.host, self.port)),
-                ContextData(),
-                ObjectType(ObjectIdentity(oid))
-            )
-            errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
-            if errorIndication or errorStatus:
-                return None
-            for varBind in varBinds:
-                return varBind[1]
-        return await asyncio.to_thread(sync_get)
+    if not errorIndication:
+        for varBind in varBinds:
+            for oid_val, val in varBind:
+                port_index = int(oid_val.prettyPrint().split('.')[-1])
+                ports.append({"index": port_index, "name": str(val)})
 
-    async def set(self, oid, value):
-        def sync_set():
-            iterator = setCmd(
-                SnmpEngine(),
-                self._get_auth(),
-                UdpTransportTarget((self.host, self.port)),
-                ContextData(),
-                ObjectType(ObjectIdentity(oid), value)
-            )
-            errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
-            return not errorIndication and not errorStatus
-        return await asyncio.to_thread(sync_set)
+    return ports
+
+async def set_poe_port(host, user_data, port_index, power_on: bool):
+    """Schaltet PoE eines Ports ein/aus."""
+    transport = UdpTransportTarget.create((host, 161))
+    value = Integer(1 if power_on else 2)  # 1=on, 2=off
+
+    errorIndication, errorStatus, errorIndex, varBinds = await setCmd(
+        SnmpEngine(),
+        user_data,
+        transport,
+        ContextData(),
+        ObjectType(ObjectIdentity(f'1.3.6.1.4.1.890.1.59.1.2.1.1.2.{port_index}'), value)
+    )
+
+    if errorIndication or errorStatus:
+        return False
+    return True
+
+async def get_poe_status(host, user_data, port_index):
+    """Liest PoE-Status eines Ports."""
+    transport = UdpTransportTarget.create((host, 161))
+
+    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+        SnmpEngine(),
+        user_data,
+        transport,
+        ContextData(),
+        ObjectType(ObjectIdentity(f'1.3.6.1.4.1.890.1.59.1.2.1.1.{port_index}'))
+    )
+
+    if errorIndication or errorStatus:
+        return None
+
+    return int(varBinds[0][1])
