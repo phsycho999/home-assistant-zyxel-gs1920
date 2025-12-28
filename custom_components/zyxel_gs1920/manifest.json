@@ -1,8 +1,7 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920",
-  "version": "1.0.0",
-  "documentation": "https://github.com/phsycho999/home-assistant-zyxel-gs1920",
+  "version": "1.0",
   "requirements": ["pysnmp>=4.4.12"],
   "dependencies": [],
   "codeowners": ["@phsycho999"],
