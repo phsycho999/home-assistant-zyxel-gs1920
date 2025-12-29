@@ -1,37 +1,28 @@
-from pysnmp.hlapi.asyncio import (
-    SnmpEngine,
-    CommunityData,
-    UdpTransportTarget,
-    ContextData,
-    ObjectType,
-    ObjectIdentity,
-    getCmd,
-    nextCmd,
-    setCmd
-)
-from pysnmp.hlapi.asyncio import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol
-from pysnmp.proto.rfc1902 import Integer
+from pysnmp.hlapi.asyncio import getCmd, setCmd, nextCmd, SnmpEngine, UsmUserData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity
+from pysnmp.hlapi.auth import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+from pysnmp.hlapi import Integer
 
 async def get_ports(host, user_data):
-    """Liste aller Ports mit Namen zurückgeben."""
+    """Liste aller Ports zurückgeben."""
     transport = UdpTransportTarget((host, 161))
     ports = []
 
     oid = ObjectIdentity("1.3.6.1.4.1.890.1.59.1.1.1.3")  # zyPortName
-    errorIndication, errorStatus, errorIndex, varBinds = await nextCmd(
+    async for (errorIndication, errorStatus, errorIndex, varBinds) in nextCmd(
         SnmpEngine(),
         user_data,
         transport,
         ContextData(),
         ObjectType(oid),
         lexicographicMode=False
-    )
-
-    if not errorIndication:
+    ):
+        if errorIndication or errorStatus:
+            continue
         for varBind in varBinds:
             for oid_val, val in varBind:
-                index = int(oid_val.prettyPrint().split('.')[-1])
-                ports.append({"index": index, "name": str(val)})
+                port_index = int(oid_val.prettyPrint().split('.')[-1])
+                ports.append({"index": port_index, "name": str(val)})
+
     return ports
 
 async def get_poe_status(host, user_data, port_index):
@@ -41,7 +32,7 @@ async def get_poe_status(host, user_data, port_index):
         user_data,
         transport,
         ContextData(),
-        ObjectType(ObjectIdentity(f"1.3.6.1.4.1.890.1.59.2.1.1.1.{port_index}"))
+        ObjectType(ObjectIdentity(f"1.3.6.1.4.1.890.1.59.1.2.1.1.{port_index}"))
     )
     if errorIndication or errorStatus:
         return None
@@ -57,4 +48,6 @@ async def set_poe_port(host, user_data, port_index, power_on: bool):
         ContextData(),
         ObjectType(ObjectIdentity(f"1.3.6.1.4.1.890.1.59.1.2.1.2.{port_index}"), value)
     )
-    return not (errorIndication or errorStatus)
+    if errorIndication or errorStatus:
+        return False
+    return True

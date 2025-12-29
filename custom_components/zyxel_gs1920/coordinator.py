@@ -1,24 +1,30 @@
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from datetime import timedelta
 from .snmp import get_ports, get_poe_status
+from pysnmp.hlapi.asyncio import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol
 
 class ZyxelCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, host, user_data):
+    """Coordinator for Zyxel GS1920."""
+
+    def __init__(self, hass, host, username, auth_key=None, priv_key=None):
+        self._host = host
+        self._user_data = UsmUserData(
+            username,
+            authKey=auth_key,
+            privKey=priv_key,
+            authProtocol=usmHMACMD5AuthProtocol,
+            privProtocol=usmAesCfb128Protocol
+        )
         super().__init__(
             hass,
-            _LOGGER := hass.logger,
+            _LOGGER := None,
             name="Zyxel GS1920",
             update_interval=timedelta(seconds=60),
         )
-        self.host = host
-        self.user_data = user_data
         self.ports = []
 
     async def _async_update_data(self):
-        try:
-            self.ports = await get_ports(self.host, self.user_data)
-            for port in self.ports:
-                port["poe"] = await get_poe_status(self.host, self.user_data, port["index"])
-            return self.ports
-        except Exception as e:
-            raise UpdateFailed(e)
+        self.ports = await get_ports(self._host, self._user_data)
+        for port in self.ports:
+            port["poe_status"] = await get_poe_status(self._host, self._user_data, port["index"])
+        return self.ports

@@ -1,34 +1,23 @@
 from homeassistant import config_entries
 from .const import DOMAIN
-from pysnmp.hlapi.asyncio import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+import voluptuous as vol
 
-class ZyxelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("host"): str,
+        vol.Required("username"): str,
+        vol.Optional("auth_key", default=""): str,
+        vol.Optional("priv_key", default=""): str,
+    }
+)
+
+class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Config flow for Zyxel GS1920."""
+
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        errors = {}
-        if user_input is not None:
-            self.host = user_input["host"]
-            self.username = user_input["username"]
-            self.user_data = UsmUserData(
-                self.username,
-                authKey=None,
-                privKey=None,
-                authProtocol=usmHMACMD5AuthProtocol,
-                privProtocol=usmAesCfb128Protocol
-            )
-            return self.async_create_entry(title=f"Zyxel {self.host}", data=user_input)
+        if user_input is None:
+            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=self._get_data_schema(),
-            errors=errors
-        )
-
-    def _get_data_schema(self):
-        import voluptuous as vol
-        from homeassistant.helpers import config_validation as cv
-        return vol.Schema({
-            vol.Required("host"): str,
-            vol.Required("username"): str
-        })
+        return self.async_create_entry(title=f"Zyxel GS1920 {user_input['host']}", data=user_input)

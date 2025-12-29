@@ -4,10 +4,12 @@
   "version": "1.0.0",
   "documentation": "https://github.com/phsycho999/home-assistant-zyxel-gs1920",
   "requirements": [
-    "pysnmp>=4.5.0"
+    "pysnmp==4.5.0"
   ],
   "dependencies": [],
-  "codeowners": ["@phsycho999"],
+  "codeowners": ["@deinGithubName"],
   "config_flow": true,
-  "iot_class": "local_polling"
+  "homeassistant": "2023.12.0",
+  "iot_class": "local_polling",
+  "integration_type": "hardware"
 }
