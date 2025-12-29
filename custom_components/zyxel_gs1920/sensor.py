@@ -1,27 +1,20 @@
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-
-    entities = []
-    for port, info in coordinator.data.items():
-        entities.append(ZyxelPoeSensor(coordinator, port))
-
-    async_add_entities(entities)
+    async_add_entities([ZyxelPortAdminSensor(coordinator)])
 
 
-class ZyxelPoeSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, port):
+class ZyxelPortAdminSensor(CoordinatorEntity, SensorEntity):
+    _attr_name = "Zyxel Port 1 Admin Status"
+
+    def __init__(self, coordinator):
         super().__init__(coordinator)
-        self.port = port
-
-    @property
-    def name(self):
-        return f"{self.coordinator.data[self.port]['name']} PoE"
 
     @property
     def native_value(self):
-        return self.coordinator.data[self.port]["poe"]
+        return "up" if self.coordinator.data["port1_admin"] == 1 else "down"

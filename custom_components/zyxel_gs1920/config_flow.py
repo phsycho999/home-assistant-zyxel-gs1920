@@ -1,41 +1,27 @@
-"""Config flow for Zyxel GS1920."""
+import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from .const import DOMAIN
-from pysnmp.hlapi.asyncio import UsmUserData
-from pysnmp.hlapi.usm import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+from homeassistant.core import callback
+
+from .const import DOMAIN, CONF_HOST, CONF_USERNAME, CONF_AUTH_KEY, CONF_PRIV_KEY
+
 
 class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-        errors = {}
-
         if user_input is not None:
-            host = user_input["host"]
-            username = user_input["username"]
-            auth_key = user_input.get("auth_key")
-            priv_key = user_input.get("priv_key")
-
-            user_data = UsmUserData(
-                username=username,
-                authKey=auth_key,
-                privKey=priv_key,
-                authProtocol=usmHMACMD5AuthProtocol,
-                privProtocol=usmAesCfb128Protocol
+            return self.async_create_entry(
+                title=user_input[CONF_HOST],
+                data=user_input,
             )
 
-            # Kein SNMP-Test beim Import – nur hier asynchron prüfen (optional)
-            # ports = await get_ports(host, user_data)
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST): str,
+                vol.Required(CONF_USERNAME): str,
+                vol.Required(CONF_AUTH_KEY): str,
+                vol.Required(CONF_PRIV_KEY): str,
+            }
+        )
 
-            return self.async_create_entry(title=host, data=user_input)
-
-        data_schema = {
-            "host": str,
-            "username": str,
-            "auth_key": str,
-            "priv_key": str
-        }
-
-        return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
+        return self.async_show_form(step_id="user", data_schema=schema)

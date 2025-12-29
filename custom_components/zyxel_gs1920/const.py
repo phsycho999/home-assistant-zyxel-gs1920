@@ -1,10 +1,9 @@
 DOMAIN = "zyxel_gs1920"
-
 PLATFORMS = ["sensor", "switch"]
 
-DEFAULT_SNMP_PORT = 161
+CONF_HOST = "host"
+CONF_USERNAME = "username"
+CONF_AUTH_KEY = "auth_key"
+CONF_PRIV_KEY = "priv_key"
 
-# Zyxel PoE OIDs
-OID_PORT_NAME = "1.3.6.1.4.1.890.1.59.1.1.1.3"
-OID_POE_STATUS = "1.3.6.1.4.1.890.1.59.2.1.1.1"
-OID_POE_ENABLE = "1.3.6.1.4.1.890.1.59.1.2.1.1.2"
+DEFAULT_SCAN_INTERVAL = 30
