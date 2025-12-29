@@ -1,14 +1,21 @@
 from homeassistant.helpers.entity import ToggleEntity
+from .snmp import get_ports, set_poe_port
+from pysnmp.hlapi.asyncio import UsmUserData
+from pysnmp.hlapi.usm import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
 from .const import DOMAIN
-from .snmp import get_ports, set_poe_port, create_user_data
 
 async def async_setup_entry(hass, entry, async_add_entities):
     host = entry.data["host"]
     username = entry.data["username"]
-    auth_key = entry.data.get("auth_key")
-    priv_key = entry.data.get("priv_key")
 
-    user_data = create_user_data(username, auth_key, priv_key)
+    user_data = UsmUserData(
+        username,
+        authKey=None,
+        privKey=None,
+        authProtocol=usmHMACMD5AuthProtocol,
+        privProtocol=usmAesCfb128Protocol
+    )
+
     ports = await get_ports(host, user_data)
     switches = [ZyxelPoESwitch(host, user_data, port["index"], port["name"]) for port in ports]
 
