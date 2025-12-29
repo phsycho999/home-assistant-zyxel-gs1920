@@ -1,46 +1,36 @@
-from homeassistant.helpers.entity import ToggleEntity
-from .snmp import get_ports, set_poe_port
-from pysnmp.hlapi.asyncio import UsmUserData
-from pysnmp.hlapi.usm import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+from homeassistant.components.switch import SwitchEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
+from .snmp import set_poe
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    host = entry.data["host"]
-    username = entry.data["username"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    user_data = UsmUserData(
-        username,
-        authKey=None,
-        privKey=None,
-        authProtocol=usmHMACMD5AuthProtocol,
-        privProtocol=usmAesCfb128Protocol
-    )
+    entities = []
+    for port in coordinator.data:
+        entities.append(ZyxelPoeSwitch(coordinator, port))
 
-    ports = await get_ports(host, user_data)
-    switches = [ZyxelPoESwitch(host, user_data, port["index"], port["name"]) for port in ports]
+    async_add_entities(entities)
 
-    async_add_entities(switches)
 
-class ZyxelPoESwitch(ToggleEntity):
-    def __init__(self, host, user_data, port_index, name):
-        self._host = host
-        self._user_data = user_data
-        self._port_index = port_index
-        self._name = name
-        self._is_on = None
+class ZyxelPoeSwitch(CoordinatorEntity, SwitchEntity):
+    def __init__(self, coordinator, port):
+        super().__init__(coordinator)
+        self.port = port
 
     @property
     def name(self):
-        return self._name
+        return f"{self.coordinator.data[self.port]['name']} PoE Switch"
 
     @property
     def is_on(self):
-        return self._is_on
+        return self.coordinator.data[self.port]["poe"] == 1
 
     async def async_turn_on(self, **kwargs):
-        self._is_on = await set_poe_port(self._host, self._user_data, self._port_index, True)
-        self.async_write_ha_state()
+        await set_poe(self.coordinator.host, self.coordinator.user, self.port, True)
+        await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
-        self._is_on = not await set_poe_port(self._host, self._user_data, self._port_index, False)
-        self.async_write_ha_state()
+        await set_poe(self.coordinator.host, self.coordinator.user, self.port, False)
+        await self.coordinator.async_request_refresh()

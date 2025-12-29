@@ -1,55 +1,75 @@
-"""SNMP helper functions for Zyxel GS1920."""
-from pysnmp.hlapi.asyncio import SnmpEngine, getCmd, setCmd, nextCmd, UsmUserData
-from pysnmp.hlapi import ObjectType, ObjectIdentity, UdpTransportTarget, Integer
-from pysnmp.hlapi.usm import usmHMACMD5AuthProtocol, usmAesCfb128Protocol
+from pysnmp.hlapi.asyncio import (
+    SnmpEngine,
+    ContextData,
+    UdpTransportTarget,
+    ObjectType,
+    ObjectIdentity,
+    getCmd,
+    nextCmd,
+    setCmd,
+    UsmUserData,
+)
+from pysnmp.proto.rfc1902 import Integer
 
-async def get_ports(host, user_data):
-    """Return list of ports with their index and name."""
+
+def build_user(username, auth_key, priv_key):
+    return UsmUserData(username, auth_key, priv_key)
+
+
+async def get_ports(host, user):
     transport = UdpTransportTarget((host, 161))
-    ports = []
+    ports = {}
 
-    errorIndication, errorStatus, errorIndex, varBinds = await nextCmd(
+    oid = ObjectIdentity(OID_PORT_NAME)
+
+    async for errorIndication, errorStatus, _, varBinds in nextCmd(
         SnmpEngine(),
-        user_data,
+        user,
         transport,
-        contextData=None,
-        ObjectType(ObjectIdentity('1.3.6.1.4.1.890.1.59.1.1.1.3')),  # zyPortName
-        lexicographicMode=False
-    )
+        ContextData(),
+        ObjectType(oid),
+        lexicographicMode=False,
+    ):
+        if errorIndication or errorStatus:
+            break
 
-    if errorIndication:
-        return ports
-
-    for varBind in varBinds:
-        for oid_val, val in varBind:
-            port_index = int(oid_val.prettyPrint().split('.')[-1])
-            ports.append({"index": port_index, "name": str(val)})
+        for oid_val, val in varBinds:
+            idx = int(oid_val.prettyPrint().split(".")[-1])
+            ports[idx] = str(val)
 
     return ports
 
-async def get_poe_status(host, user_data, port_index):
-    """Get PoE status of a port."""
+
+async def get_poe_status(host, user, port):
     transport = UdpTransportTarget((host, 161))
-    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+    oid = f"{OID_POE_STATUS}.{port}"
+
+    errorIndication, errorStatus, _, varBinds = await getCmd(
         SnmpEngine(),
-        user_data,
+        user,
         transport,
-        contextData=None,
-        ObjectType(ObjectIdentity(f'{OID_POE_STATUS}.{port_index}'))
+        ContextData(),
+        ObjectType(ObjectIdentity(oid)),
     )
+
     if errorIndication or errorStatus:
         return None
+
     return int(varBinds[0][1])
 
-async def set_poe_port(host, user_data, port_index, power_on: bool):
-    """Enable or disable PoE on a port."""
+
+async def set_poe(host, user, port, enable: bool):
     transport = UdpTransportTarget((host, 161))
-    value = Integer(1 if power_on else 2)
-    errorIndication, errorStatus, errorIndex, varBinds = await setCmd(
+    value = Integer(1 if enable else 2)
+
+    oid = f"{OID_POE_ENABLE}.{port}"
+
+    errorIndication, errorStatus, _, _ = await setCmd(
         SnmpEngine(),
-        user_data,
+        user,
         transport,
-        contextData=None,
-        ObjectType(ObjectIdentity(f'{OID_POE_POWER_UP}.{port_index}'), value)
+        ContextData(),
+        ObjectType(ObjectIdentity(oid), value),
     )
+
     return not (errorIndication or errorStatus)
