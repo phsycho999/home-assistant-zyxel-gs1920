@@ -1,27 +1,34 @@
-import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
+from .const import DOMAIN
+from pysnmp.hlapi.asyncio import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol
 
-from .const import DOMAIN, CONF_HOST, CONF_USERNAME, CONF_AUTH_KEY, CONF_PRIV_KEY
-
-
-class ZyxelGS1920ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ZyxelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
+        errors = {}
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_HOST],
-                data=user_input,
+            self.host = user_input["host"]
+            self.username = user_input["username"]
+            self.user_data = UsmUserData(
+                self.username,
+                authKey=None,
+                privKey=None,
+                authProtocol=usmHMACMD5AuthProtocol,
+                privProtocol=usmAesCfb128Protocol
             )
+            return self.async_create_entry(title=f"Zyxel {self.host}", data=user_input)
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_HOST): str,
-                vol.Required(CONF_USERNAME): str,
-                vol.Required(CONF_AUTH_KEY): str,
-                vol.Required(CONF_PRIV_KEY): str,
-            }
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self._get_data_schema(),
+            errors=errors
         )
 
-        return self.async_show_form(step_id="user", data_schema=schema)
+    def _get_data_schema(self):
+        import voluptuous as vol
+        from homeassistant.helpers import config_validation as cv
+        return vol.Schema({
+            vol.Required("host"): str,
+            vol.Required("username"): str
+        })
