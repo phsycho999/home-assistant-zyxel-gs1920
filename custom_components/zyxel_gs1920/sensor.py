@@ -1,24 +1,31 @@
 from homeassistant.helpers.entity import Entity
-from .coordinator import ZyxelCoordinator
+from .const import DOMAIN
+from .snmp import get_ports, get_poe_status
+from pysnmp.hlapi import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = ZyxelCoordinator(
-        hass,
-        entry.data["host"],
-        entry.data["username"],
-        entry.data.get("auth_key"),
-        entry.data.get("priv_key")
-    )
-    await coordinator.async_config_entry_first_refresh()
+    host = entry.data["host"]
+    username = entry.data["username"]
+    authKey = entry.data.get("authKey")
+    privKey = entry.data.get("privKey")
 
-    sensors = [ZyxelPoESensor(coordinator, port["index"], port["name"]) for port in coordinator.ports]
+    user_data = UsmUserData(
+        username, authKey=authKey, privKey=privKey,
+        authProtocol=usmHMACMD5AuthProtocol,
+        privProtocol=usmAesCfb128Protocol
+    )
+
+    ports = await get_ports(host, user_data)
+    sensors = [ZyxelPoESensor(host, user_data, p["index"], p["name"]) for p in ports]
     async_add_entities(sensors)
 
 class ZyxelPoESensor(Entity):
-    def __init__(self, coordinator, port_index, name):
-        self.coordinator = coordinator
-        self.port_index = port_index
+    def __init__(self, host, user_data, port_index, name):
+        self._host = host
+        self._user_data = user_data
+        self._port_index = port_index
         self._name = name
+        self._state = None
 
     @property
     def name(self):
@@ -26,8 +33,7 @@ class ZyxelPoESensor(Entity):
 
     @property
     def state(self):
-        port = next((p for p in self.coordinator.ports if p["index"] == self.port_index), None)
-        return port["poe_status"] if port else None
+        return self._state
 
     async def async_update(self):
-        await self.coordinator.async_request_refresh()
+        self._state = await get_poe_status(self._host, self._user_data, self._port_index)
