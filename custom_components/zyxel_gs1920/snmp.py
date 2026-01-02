@@ -1,36 +1,52 @@
-def snmp_get_sysdescr(host, username, auth_key, priv_key):
-    # LAZY IMPORT – erst zur Laufzeit!
-    from pysnmp.hlapi import (
-        SnmpEngine,
-        UsmUserData,
-        UdpTransportTarget,
-        ContextData,
-        ObjectType,
-        ObjectIdentity,
-        getCmd,
-        usmHMACSHAAuthProtocol,
-        usmAesCfb128Protocol,
-    )
+from pysnmp.hlapi.asyncio import (
+    SnmpEngine,
+    UsmUserData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    getCmd,
+    setCmd,
+    usmHMACMD5AuthProtocol,
+    usmDESPrivProtocol,
+)
 
-    iterator = getCmd(
-        SnmpEngine(),
-        UsmUserData(
-            username,
-            auth_key,
-            priv_key,
-            authProtocol=usmHMACSHAAuthProtocol,
-            privProtocol=usmAesCfb128Protocol,
-        ),
-        UdpTransportTarget((host, 161), timeout=2, retries=1),
-        ContextData(),
-        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),
-    )
 
-    errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+class ZyxelSNMP:
+    def __init__(self, host, username, auth_key, priv_key):
+        self.engine = SnmpEngine()
+        self.user = UsmUserData(
+            userName=username,
+            authKey=auth_key,
+            privKey=priv_key,
+            authProtocol=usmHMACMD5AuthProtocol,
+            privProtocol=usmDESPrivProtocol,
+        )
+        self.target = UdpTransportTarget((host, 161))
+        self.context = ContextData()
 
-    if errorIndication:
-        raise RuntimeError(errorIndication)
-    if errorStatus:
-        raise RuntimeError(errorStatus.prettyPrint())
+    async def get(self, oid: str):
+        error_indication, error_status, _, var_binds = await getCmd(
+            self.engine,
+            self.user,
+            self.target,
+            self.context,
+            ObjectType(ObjectIdentity(oid)),
+        )
 
-    return str(varBinds[0][1])
+        if error_indication or error_status:
+            raise RuntimeError(f"SNMP GET failed: {error_indication}")
+
+        return var_binds[0][1]
+
+    async def set(self, oid: str, value):
+        error_indication, error_status, _, _ = await setCmd(
+            self.engine,
+            self.user,
+            self.target,
+            self.context,
+            ObjectType(ObjectIdentity(oid), value),
+        )
+
+        if error_indication or error_status:
+            raise RuntimeError(f"SNMP SET failed: {error_indication}")
