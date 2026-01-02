@@ -1,9 +1,9 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "config_flow": true,
+  "iot_class": "local_polling",
   "requirements": [],
-  "codeowners": ["@phsycho999"],
-  "iot_class": "local_polling"
+  "codeowners": ["@you"]
 }

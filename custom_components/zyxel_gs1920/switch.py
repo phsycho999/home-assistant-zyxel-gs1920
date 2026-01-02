@@ -1,31 +1,44 @@
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
-
-
-PORT1_ADMIN_OID = "1.3.6.1.2.1.2.2.1.7.1"
+from .const import DOMAIN, PORT_COUNT, POE_PORT_OID
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([ZyxelPort1Switch(coordinator)])
+    entities = []
+
+    for port in range(1, PORT_COUNT + 1):
+        entities.append(ZyxelPoeSwitch(coordinator, port))
+
+    async_add_entities(entities)
 
 
-class ZyxelPort1Switch(CoordinatorEntity, SwitchEntity):
-    _attr_name = "Zyxel Port 1"
-    _attr_unique_id = "zyxel_gs1920_port1"
+class ZyxelPoeSwitch(SwitchEntity):
+    def __init__(self, coordinator, port):
+        self.coordinator = coordinator
+        self.port = port
+        self._attr_name = f"PoE Port {port}"
+        self._attr_unique_id = f"zyxel_gs1920_poe_{port}"
 
-    def __init__(self, coordinator):
-        super().__init__(coordinator)
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, "zyxel_gs1920")},
+            name="Zyxel GS1920",
+            manufacturer="Zyxel",
+            model="GS1920",
+        )
 
     @property
     def is_on(self):
-        # optional: echten Status abfragen
-        return True
+        oid = f"{POE_PORT_OID}.{self.port}"
+        return self.coordinator.snmp.get(oid) == 1
 
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.snmp.set(PORT1_ADMIN_OID, 1)
+        oid = f"{POE_PORT_OID}.{self.port}"
+        await self.coordinator.snmp.set(oid, 1)
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.snmp.set(PORT1_ADMIN_OID, 2)
+        oid = f"{POE_PORT_OID}.{self.port}"
+        await self.coordinator.snmp.set(oid, 2)

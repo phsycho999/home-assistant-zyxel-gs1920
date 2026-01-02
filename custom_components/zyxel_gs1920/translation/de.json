@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Zyxel GS1920",
+        "description": "SNMP Zugangsdaten eingeben"
+      }
+    }
+  }
+}
