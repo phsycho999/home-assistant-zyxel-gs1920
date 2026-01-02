@@ -1,17 +1,17 @@
-from pysnmp.hlapi import (
-    SnmpEngine,
-    UsmUserData,
-    UdpTransportTarget,
-    ContextData,
-    ObjectType,
-    ObjectIdentity,
-    getCmd,
-    usmHMACSHAAuthProtocol,
-    usmAesCfb128Protocol,
-)
+def snmp_get_sysdescr(host, username, auth_key, priv_key):
+    # LAZY IMPORT – erst zur Laufzeit!
+    from pysnmp.hlapi import (
+        SnmpEngine,
+        UsmUserData,
+        UdpTransportTarget,
+        ContextData,
+        ObjectType,
+        ObjectIdentity,
+        getCmd,
+        usmHMACSHAAuthProtocol,
+        usmAesCfb128Protocol,
+    )
 
-
-def snmp_test_connection(host, username, auth_key, priv_key):
     iterator = getCmd(
         SnmpEngine(),
         UsmUserData(
@@ -23,7 +23,7 @@ def snmp_test_connection(host, username, auth_key, priv_key):
         ),
         UdpTransportTarget((host, 161), timeout=2, retries=1),
         ContextData(),
-        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),  # sysDescr
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),
     )
 
     errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
@@ -33,4 +33,4 @@ def snmp_test_connection(host, username, auth_key, priv_key):
     if errorStatus:
         raise RuntimeError(errorStatus.prettyPrint())
 
-    return True
+    return str(varBinds[0][1])

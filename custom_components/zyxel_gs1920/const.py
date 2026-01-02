@@ -6,5 +6,3 @@ CONF_HOST = "host"
 CONF_USERNAME = "username"
 CONF_AUTH_KEY = "auth_key"
 CONF_PRIV_KEY = "priv_key"
-
-DEFAULT_PORT_COUNT = 24
