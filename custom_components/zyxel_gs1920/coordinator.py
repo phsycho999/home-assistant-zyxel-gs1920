@@ -1,36 +1,31 @@
-from datetime import timedelta
-
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.core import HomeAssistant
-
+from datetime import timedelta
 from .snmp import ZyxelSNMP
-from .const import DOMAIN
 
+CONF_HOST = "host"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"
 
 class ZyxelCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass: HomeAssistant, config):
+    """Coordinator to manage data retrieval."""
+
+    def __init__(self, hass, entry):
+        self.entry = entry
         self.snmp = ZyxelSNMP(
-            config["host"],
-            config["username"],
-            config["auth_key"],
-            config["priv_key"],
+            host=entry.data[CONF_HOST],
+            username=entry.data[CONF_USERNAME],
+            auth_key=entry.data[CONF_PASSWORD]
         )
 
         super().__init__(
             hass,
-            logger=None,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=30),
+            _LOGGER:=hass.logger,
+            name="zyxel_gs1920",
+            update_interval=timedelta(seconds=30)
         )
 
     async def _async_update_data(self):
         try:
-            # Beispiel: System Name
-            sys_name = await self.snmp.get("1.3.6.1.2.1.1.5.0")
-
-            return {
-                "sys_name": str(sys_name),
-            }
-
+            return await self.snmp.get_port_status()
         except Exception as err:
-            raise UpdateFailed(err) from err
+            raise UpdateFailed(f"Error fetching data: {err}")
