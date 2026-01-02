@@ -1,33 +1,28 @@
 from homeassistant.components.switch import SwitchEntity
-from .const import DOMAIN
-
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    switches = []
-
-    # Beispiel: 24 Ports
-    for port in range(1, 25):
-        switches.append(ZyxelPortSwitch(coordinator, port))
-
-    async_add_entities(switches)
+from .coordinator import ZyxelCoordinator
 
 class ZyxelPortSwitch(SwitchEntity):
-    def __init__(self, coordinator, port_index):
+    def __init__(self, coordinator, port_number):
         self.coordinator = coordinator
-        self.port_index = port_index
-        self._attr_name = f"PoE Port {port_index}"
+        self.port = port_number
+        self._attr_name = f"Port {port_number} POE"
         self._attr_is_on = False
 
-    @property
-    def available(self):
-        return True
-
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.snmp.set_poe(self.port_index, True)
+        await self.coordinator.snmp.set(f"1.3.6.1.2.1.105.1.1.1.3.{self.port}", 1)
         self._attr_is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.snmp.set_poe(self.port_index, False)
+        await self.coordinator.snmp.set(f"1.3.6.1.2.1.105.1.1.1.3.{self.port}", 2)
         self._attr_is_on = False
         self.async_write_ha_state()
+
+    @property
+    def is_on(self):
+        return self._attr_is_on
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    coordinator = hass.data["zyxel_gs1920"][entry.entry_id]
+    entities = [ZyxelPortSwitch(coordinator, i+1) for i in range(24)]  # 24 Ports
+    async_add_entities(entities)

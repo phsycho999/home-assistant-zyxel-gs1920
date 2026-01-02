@@ -1,12 +1,9 @@
 {
   "domain": "zyxel_gs1920",
-  "name": "Zyxel GS1920",
+  "name": "Zyxel GS1920 Switch",
   "version": "1.0.0",
-  "documentation": "https://github.com/yourusername/zyxel_gs1920",
-  "requirements": [
-    "pysnmp==7.1.22"
-  ],
+  "documentation": "https://www.home-assistant.io/integrations/zyxel_gs1920",
+  "requirements": ["pysnmp==7.1.22"],
   "dependencies": [],
-  "codeowners": ["@yourusername"],
-  "config_flow": true
+  "codeowners": ["@yourgithubusername"]
 }

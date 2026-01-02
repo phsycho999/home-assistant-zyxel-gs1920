@@ -1,10 +1,10 @@
 DOMAIN = "zyxel_gs1920"
-
 CONF_HOST = "host"
-CONF_SNMP_USER = "snmp_user"
-CONF_SNMP_AUTH_KEY = "auth_key"
-CONF_SNMP_AUTH_PROTO = "auth_proto"
-CONF_SNMP_PRIV_KEY = "priv_key"
-CONF_SNMP_PRIV_PROTO = "priv_proto"
+CONF_USERNAME = "username"
+CONF_AUTH_KEY = "auth_key"
+CONF_PRIV_KEY = "priv_key"
+CONF_SECURITY_LEVEL = "security_level"
 
 PLATFORMS = ["switch"]
+
+SECURITY_LEVELS = ["authNoPriv", "authPriv"]

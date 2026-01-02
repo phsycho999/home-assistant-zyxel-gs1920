@@ -1,37 +1,36 @@
+import asyncio
 from pysnmp.hlapi.asyncio import (
-    SnmpEngine, UdpTransportTarget, ContextData,
-    UsmUserData, getCmd, setCmd, ObjectType, ObjectIdentity
+    SnmpEngine,
+    UsmUserData,
+    UdpTransportTarget,
+    ContextData,
+    getCmd,
+    setCmd,
+    ObjectType,
+    ObjectIdentity,
 )
+from .const import SECURITY_LEVELS
 
 class ZyxelSNMP:
-    def __init__(self, host, user, auth_key, auth_proto, priv_key=None, priv_proto=None, port=161):
-        self.host = host
-        self.port = port
-        self.user_data = UsmUserData(user, authKey=auth_key, authProtocol=auth_proto,
-                                     privKey=priv_key, privProtocol=priv_proto)
-        self.context = ContextData()
+    def __init__(self, host, username, auth_key, priv_key, security_level="authPriv", port=161):
         self.engine = SnmpEngine()
+        self.user = UsmUserData(username, auth_key, priv_key, security_level=security_level)
+        self.target = UdpTransportTarget.create((host, port))
+        self.context = ContextData()
 
-    async def get_system_name(self):
-        """Beispiel SNMP GET OID für System Name"""
-        iterator = getCmd(self.engine, self.user_data,
-                          UdpTransportTarget.create((self.host, self.port)),
-                          self.context,
-                          ObjectType(ObjectIdentity('1.3.6.1.2.1.1.5.0')))
-        errorIndication, errorStatus, errorIndex, varBinds = await iterator
-        if errorIndication or errorStatus:
-            return None
-        return str(varBinds[0][1])
+    async def get(self, oid):
+        errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+            self.engine, self.user, self.target, self.context, ObjectType(ObjectIdentity(oid))
+        )
+        if errorIndication:
+            raise Exception(errorIndication)
+        return varBinds[0][1]
 
-    async def set_poe(self, port_index: int, enable: bool):
-        """PoE pro Port an/aus"""
-        oid = f'1.3.6.1.4.1.890.1.9.2.1.6.{port_index}'  # Beispiel OID, prüfen!
-        value = 1 if enable else 2  # Enable = 1, Disable = 2
-        iterator = setCmd(self.engine, self.user_data,
-                          UdpTransportTarget.create((self.host, self.port)),
-                          self.context,
-                          ObjectType(ObjectIdentity(oid), value))
-        errorIndication, errorStatus, errorIndex, varBinds = await iterator
-        if errorIndication or errorStatus:
-            return False
-        return True
+    async def set(self, oid, value, value_type="Integer"):
+        obj = ObjectType(ObjectIdentity(oid), value)
+        errorIndication, errorStatus, errorIndex, varBinds = await setCmd(
+            self.engine, self.user, self.target, self.context, obj
+        )
+        if errorIndication:
+            raise Exception(errorIndication)
+        return varBinds[0][1]
