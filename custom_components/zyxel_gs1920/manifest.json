@@ -1,10 +1,12 @@
 {
   "domain": "zyxel_gs1920",
-  "name": "Zyxel GS1920 Switch",
+  "name": "Zyxel GS1920",
   "version": "1.0.0",
-  "documentation": "https://github.com/yourrepo/zyxel_gs1920",
-  "requirements": ["pysnmp>=7.1.22"],
+  "documentation": "https://github.com/yourusername/zyxel_gs1920",
+  "requirements": [
+    "pysnmp==7.1.22"
+  ],
   "dependencies": [],
-  "codeowners": ["@deinusername"],
+  "codeowners": ["@yourusername"],
   "config_flow": true
 }

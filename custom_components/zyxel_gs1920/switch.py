@@ -1,44 +1,33 @@
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.helpers.entity import DeviceInfo
-
-from .const import DOMAIN, PORT_COUNT, POE_PORT_OID
-
+from .const import DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
+    switches = []
 
-    for port in range(1, PORT_COUNT + 1):
-        entities.append(ZyxelPoeSwitch(coordinator, port))
+    # Beispiel: 24 Ports
+    for port in range(1, 25):
+        switches.append(ZyxelPortSwitch(coordinator, port))
 
-    async_add_entities(entities)
+    async_add_entities(switches)
 
-
-class ZyxelPoeSwitch(SwitchEntity):
-    def __init__(self, coordinator, port):
+class ZyxelPortSwitch(SwitchEntity):
+    def __init__(self, coordinator, port_index):
         self.coordinator = coordinator
-        self.port = port
-        self._attr_name = f"PoE Port {port}"
-        self._attr_unique_id = f"zyxel_gs1920_poe_{port}"
+        self.port_index = port_index
+        self._attr_name = f"PoE Port {port_index}"
+        self._attr_is_on = False
 
     @property
-    def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, "zyxel_gs1920")},
-            name="Zyxel GS1920",
-            manufacturer="Zyxel",
-            model="GS1920",
-        )
-
-    @property
-    def is_on(self):
-        oid = f"{POE_PORT_OID}.{self.port}"
-        return self.coordinator.snmp.get(oid) == 1
+    def available(self):
+        return True
 
     async def async_turn_on(self, **kwargs):
-        oid = f"{POE_PORT_OID}.{self.port}"
-        await self.coordinator.snmp.set(oid, 1)
+        await self.coordinator.snmp.set_poe(self.port_index, True)
+        self._attr_is_on = True
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
-        oid = f"{POE_PORT_OID}.{self.port}"
-        await self.coordinator.snmp.set(oid, 2)
+        await self.coordinator.snmp.set_poe(self.port_index, False)
+        self._attr_is_on = False
+        self.async_write_ha_state()
