@@ -1,53 +1,36 @@
-from pysnmp.hlapi.asyncio import SnmpEngine, UdpTransportTarget, ContextData, getCmd, nextCmd, setCmd
-from pysnmp.hlapi import UsmUserData, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, ObjectType, ObjectIdentity, Integer
+from pysnmp.hlapi import (
+    SnmpEngine,
+    UsmUserData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    getCmd,
+    usmHMACSHAAuthProtocol,
+    usmAesCfb128Protocol,
+)
 
-async def get_ports(host, user_data):
-    """Liste aller Ports zurückgeben"""
-    transport = UdpTransportTarget((host, 161))
-    ports = []
 
-    oid = ObjectIdentity('1.3.6.1.4.1.890.1.59.1.1.1.3')  # zyPortName
-    errorIndication, errorStatus, errorIndex, varBinds = await nextCmd(
+def snmp_test_connection(host, username, auth_key, priv_key):
+    iterator = getCmd(
         SnmpEngine(),
-        user_data,
-        transport,
+        UsmUserData(
+            username,
+            auth_key,
+            priv_key,
+            authProtocol=usmHMACSHAAuthProtocol,
+            privProtocol=usmAesCfb128Protocol,
+        ),
+        UdpTransportTarget((host, 161), timeout=2, retries=1),
         ContextData(),
-        ObjectType(oid),
-        lexicographicMode=False
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),  # sysDescr
     )
 
-    if not errorIndication:
-        for varBind in varBinds:
-            for oid_val, val in varBind:
-                port_index = int(oid_val.prettyPrint().split('.')[-1])
-                ports.append({"index": port_index, "name": str(val)})
+    errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
 
-    return ports
+    if errorIndication:
+        raise RuntimeError(errorIndication)
+    if errorStatus:
+        raise RuntimeError(errorStatus.prettyPrint())
 
-async def get_poe_status(host, user_data, port_index):
-    transport = UdpTransportTarget((host, 161))
-    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
-        SnmpEngine(),
-        user_data,
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(f'1.3.6.1.4.1.890.1.59.1.2.1.1.{port_index}'))
-    )
-
-    if errorIndication or errorStatus:
-        return None
-    return int(varBinds[0][1])
-
-async def set_poe_port(host, user_data, port_index, power_on: bool):
-    transport = UdpTransportTarget((host, 161))
-    value = Integer(1 if power_on else 2)  # 1=on, 2=off
-    errorIndication, errorStatus, errorIndex, varBinds = await setCmd(
-        SnmpEngine(),
-        user_data,
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(f'1.3.6.1.4.1.890.1.59.1.2.1.2.{port_index}'), value)
-    )
-    if errorIndication or errorStatus:
-        return False
     return True
