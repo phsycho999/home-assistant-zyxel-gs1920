@@ -1,9 +1,8 @@
 {
   "domain": "zyxel_gs1920",
   "name": "Zyxel GS1920",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "config_flow": true,
-  "documentation": "https://github.com/phsycho999/home-assistant-zyxel-gs1920",
   "requirements": [],
   "codeowners": ["@phsycho999"],
   "iot_class": "local_polling"
